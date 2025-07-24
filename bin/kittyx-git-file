@@ -24,12 +24,13 @@ print_commit_preview() {
 export -f print_commit_preview
 export FILENAME_ONLY
 
+git log --color=always --pretty=format:'%Cgreen%ad%Creset %Cblue%an%Creset %s %C(yellow)%h%Creset' \
   --date=format-local:'%Y-%m-%dT%H-%M' -- "$FILENAME_ONLY" |
 fzf --ansi \
   --preview '
     bash -c '\''print_commit_preview "$(echo "$1" | awk "{print \$NF}")"'\'' _ {}
   ' \
-  --preview-window=right:60% \
+  --preview-window=up:60% \
   --bind 'ctrl-o:execute-silent(
     bash -c '\''
       commit=$(echo "$1" | awk "{print \$NF}")
