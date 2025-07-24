@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# Copy Git URL for current file/cursor line to clipboard
+# Usage: kittyx-git-url-copy <file> [line_number]
+
+FILE="$1"
+LINE_NUMBER="$2"
+
+if [[ -z "$FILE" ]]; then
+  echo "Error: Must provide a file path."
+  exit 1
+fi
+
+# Generate the URL
+URL=$(kittyx-git-url "$FILE" "$LINE_NUMBER")
+
+if [[ $? -eq 0 && -n "$URL" ]]; then
+  # Copy to clipboard using multiple methods for compatibility
+  if command -v copyq >/dev/null 2>&1; then
+    echo -n "$URL" | copyq copy -
+  elif command -v xclip >/dev/null 2>&1; then
+    echo -n "$URL" | xclip -selection clipboard
+  elif command -v wl-copy >/dev/null 2>&1; then
+    echo -n "$URL" | wl-copy
+  else
+    echo "Error: No clipboard utility found (copyq, xclip, or wl-copy required)"
+    exit 1
+  fi
+  
+  echo "Copied to clipboard: $URL"
+else
+  echo "Error: Failed to generate URL"
+  exit 1
+fi

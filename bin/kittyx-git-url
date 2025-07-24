@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+
+# Generate Git repository URLs for files and line numbers
+# Usage: kittyx-git-url <file> [line_number] [end_line_number]
+# Examples:
+#   kittyx-git-url src/main.rs 42       # Single line
+#   kittyx-git-url src/main.rs 42 45    # Line range
+
+FILE="$1"
+START_LINE="$2"
+END_LINE="$3"
+
+if [[ -z "$FILE" || ! -f "$FILE" ]]; then
+  echo "Error: Must provide a valid file path."
+  exit 1
+fi
+
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  echo "Error: Not inside a Git repository."
+  exit 1
+fi
+
+# Get the relative path from git root using git ls-files
+RELATIVE_PATH=$(git ls-files --full-name "$FILE" 2>/dev/null)
+if [[ -z "$RELATIVE_PATH" ]]; then
+  echo "Error: File is not tracked by git: $FILE"
+  exit 1
+fi
+
+# Get current branch or commit hash
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse HEAD)
+
+# Get remote URL
+REMOTE_URL=$(git remote get-url origin 2>/dev/null)
+if [[ -z "$REMOTE_URL" ]]; then
+  echo "Error: No remote 'origin' found."
+  exit 1
+fi
+
+# Convert SSH to HTTPS format and determine platform
+PLATFORM=""
+if [[ "$REMOTE_URL" =~ ^ssh://([^:]+):29418/(.+)$ ]]; then
+  # Gerrit SSH format: ssh://host:29418/project
+  HOST="${BASH_REMATCH[1]}"
+  PROJECT="${BASH_REMATCH[2]}"
+  BASE_URL="https://$HOST/plugins/gitiles/$PROJECT"
+  PLATFORM="gerrit"
+elif [[ "$REMOTE_URL" =~ ^git@([^:]+):(.+)\.git$ ]]; then
+  HOST="${BASH_REMATCH[1]}"
+  PATH_PART="${BASH_REMATCH[2]}"
+  BASE_URL="https://$HOST/$PATH_PART"
+elif [[ "$REMOTE_URL" =~ ^https://([^/]+)/(.+)\.git$ ]]; then
+  BASE_URL="${REMOTE_URL%.git}"
+elif [[ "$REMOTE_URL" =~ ^https://([^/]+)/(.+)$ ]]; then
+  BASE_URL="$REMOTE_URL"
+else
+  echo "Error: Unsupported remote URL format: $REMOTE_URL"
+  exit 1
+fi
+
+# Build the URL based on platform
+if [[ "$PLATFORM" == "gerrit" ]]; then
+  # Gerrit Gitiles format: https://host/plugins/gitiles/project/+/refs/heads/branch/path#line
+  URL="$BASE_URL/+/refs/heads/$BRANCH/$RELATIVE_PATH"
+  if [[ -n "$START_LINE" ]]; then
+    if [[ -n "$END_LINE" && "$END_LINE" != "$START_LINE" ]]; then
+      URL="$URL#$START_LINE,$END_LINE"
+    else
+      URL="$URL#$START_LINE"
+    fi
+  fi
+elif [[ "$BASE_URL" == *"github.com"* ]]; then
+  # GitHub format
+  URL="$BASE_URL/blob/$BRANCH/$RELATIVE_PATH"
+  
+  # Add ?plain=1 for Markdown files to make line numbers work
+  if [[ "$RELATIVE_PATH" =~ \.(md|markdown)$ ]]; then
+    URL="$URL?plain=1"
+  fi
+  
+  if [[ -n "$START_LINE" ]]; then
+    if [[ -n "$END_LINE" && "$END_LINE" != "$START_LINE" ]]; then
+      URL="$URL#L$START_LINE-L$END_LINE"
+    else
+      URL="$URL#L$START_LINE"
+    fi
+  fi
+elif [[ "$BASE_URL" == *"gitlab"* ]]; then
+  # GitLab format
+  URL="$BASE_URL/-/blob/$BRANCH/$RELATIVE_PATH"
+  if [[ -n "$START_LINE" ]]; then
+    if [[ -n "$END_LINE" && "$END_LINE" != "$START_LINE" ]]; then
+      URL="$URL#L$START_LINE-$END_LINE"
+    else
+      URL="$URL#L$START_LINE"
+    fi
+  fi
+elif [[ "$BASE_URL" == *"bitbucket"* ]]; then
+  # Bitbucket format
+  URL="$BASE_URL/src/$BRANCH/$RELATIVE_PATH"
+  if [[ -n "$START_LINE" ]]; then
+    if [[ -n "$END_LINE" && "$END_LINE" != "$START_LINE" ]]; then
+      URL="$URL#lines-$START_LINE:$END_LINE"
+    else
+      URL="$URL#lines-$START_LINE"
+    fi
+  fi
+else
+  # Default GitHub-like format for unknown platforms
+  URL="$BASE_URL/blob/$BRANCH/$RELATIVE_PATH"
+  if [[ -n "$START_LINE" ]]; then
+    if [[ -n "$END_LINE" && "$END_LINE" != "$START_LINE" ]]; then
+      URL="$URL#L$START_LINE-L$END_LINE"
+    else
+      URL="$URL#L$START_LINE"
+    fi
+  fi
+fi
+
+echo "$URL"
