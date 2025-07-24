@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Run interactive search
+FILE_PATHS=$(kittyx-grep --exit-on-execution | tr '\n' ' ' | sed 's/ *$//')
+
+# Get the first tab’s active window ID in the current active OS window
+HELIX_WINDOW_ID=$(kitty @ ls | jq -r '
+  .[] 
+  | select(.is_active==true)
+  | .tabs[0].windows[]
+  | select(.is_focused==true) 
+  | .id')
+
+if [[ -n "$FILE_PATHS" && -n "$HELIX_WINDOW_ID" ]]; then
+  # Activate Helix's command mode by sending ':'
+  kitty @ send-text --match id:"$HELIX_WINDOW_ID" ':'
+
+  # Send the "open" command with selected file paths.
+  kitty @ send-text --match id:"$HELIX_WINDOW_ID" "open $FILE_PATHS"
+
+  # Execute the command by sending Enter.
+  kitty @ send-text --match id:"$HELIX_WINDOW_ID" '\r\n'
+fi
+
