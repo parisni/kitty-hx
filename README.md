@@ -28,5 +28,5 @@ Git URL generation for Helix editor with Kitty terminal integration.
 
 [keys.select.space]
 "g" = { "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}" }
-"/" = ":sh kittyx-live-grep-tab"
+"/" = ":pipe kittyx-live-grep-tab"
 ```

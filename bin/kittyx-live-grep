@@ -8,11 +8,26 @@ CATPPUCCIN_MAUVE='#c6a0f6'
 COPY_FILE_PATH='ctrl-y:execute(echo -n {1}:{2} | tee >(copyq add -) | copyq copy -)'
 KEYS="$COPY_FILE_PATH"
 
-# Optional flag for execution and exit behavior
-if [[ $1 == '--exit-on-execution' ]]; then
-  KEYS="$KEYS+abort"
-  shift # remove the flag from the arguments so it's not passed to the `rg` command
-fi
+# Parse arguments
+INITIAL_QUERY=""
+EXIT_ON_EXECUTION=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --exit-on-execution)
+      EXIT_ON_EXECUTION=true
+      KEYS="$KEYS+abort"
+      shift
+      ;;
+    --query)
+      INITIAL_QUERY="$2"
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
 
 IFS=$'\n' readarray -t selected_matches < <(
   rg --color=always --line-number --no-heading --smart-case "${*:-}" |
@@ -26,7 +41,8 @@ IFS=$'\n' readarray -t selected_matches < <(
       --print-query --exit-0 \
       --preview 'batcat {1} --color=always --plain --highlight-line {2}' \
       --scrollbar '▍' \
-      --bind "$KEYS"
+      --bind "$KEYS" \
+      ${INITIAL_QUERY:+--query "$INITIAL_QUERY"}
 )
 
 # Print the file path and line number of each match
