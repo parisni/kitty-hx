@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+FILE="$1"
+
+if [[ -z "$FILE" || ! -f "$FILE" ]]; then
+  echo "Error: Must provide a valid file path."
+  exit 1
+fi
+
+kitty @ launch \
+  --type=tab \
+  --title="git-file $FILE" \
+  --cwd=current \
+  -- bash -c "kittyx-git-file \"$FILE\""
+
