@@ -39,7 +39,7 @@ IFS=$'\n' readarray -t selected_matches < <(
       --multi \
       --exact \
       --print-query --exit-0 \
-      --preview 'batcat {1} --color=always --plain --highlight-line {2}' \
+      --preview 'bash -c "L={2}; batcat {1} --color=always --plain --highlight-line \$L --line-range \$((L>10 ? L-10 : 1)):"'
       --scrollbar '▍' \
       --bind "$KEYS" \
       ${INITIAL_QUERY:+--query "$INITIAL_QUERY"}
