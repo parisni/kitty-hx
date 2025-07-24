@@ -18,10 +18,11 @@ fi
 print_commit_preview() {
   local commit="$1"
   [[ -z "$commit" ]] && echo "No commit selected." && return
-  git show --color=always "$commit"
+  git show --color=always "$commit" -- "$FILENAME_ONLY"
 }
 
 export -f print_commit_preview
+export FILENAME_ONLY
 
 git log --pretty=format:'%Cgreen%ad%Creset %Cblue%an%Creset %s %C(yellow)%h%Creset' \
   --date=format-local:'%Y-%m-%dT%H-%M' -- "$FILENAME_ONLY" |
