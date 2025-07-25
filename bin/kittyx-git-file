@@ -34,7 +34,6 @@ fzf --ansi \
     bash -c '\''print_commit_preview "$(echo "$1" | awk "{print \$NF}")"'\'' _ {}
   ' \
   --preview-window=up:60% \
-  --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
   --bind 'ctrl-c:execute-silent(echo -n "$(echo {} | awk "{print \$NF}")" | wl-copy)' \
   --bind 'ctrl-o:execute-silent(
     bash -c '\''
@@ -68,5 +67,7 @@ fzf --ansi \
       fi
       [[ -n "$url" ]] && xdg-open "$url"
     '\'' _ {}
-  )'
+  )' \
+  --bind 'ctrl-j:preview-down' \
+  --bind 'ctrl-k:preview-up'
 

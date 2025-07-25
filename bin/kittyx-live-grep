@@ -44,8 +44,9 @@ IFS=$'\n' readarray -t selected_matches < <(
       --print-query --exit-0 \
       --preview 'bash -c "L={2}; batcat {1} --theme=\"Solarized (light)\" --color=always --plain --highlight-line \$L --line-range \$((L>10 ? L-10 : 1)):"'
       --scrollbar '▍' \
-      --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
       --bind "$KEYS" \
+      --bind 'ctrl-j:preview-down' \
+      --bind 'ctrl-k:preview-up' \
       ${INITIAL_QUERY:+--query "$INITIAL_QUERY"}
 )
 
