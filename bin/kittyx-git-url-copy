@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
 
 # Copy Git URL for current file/cursor line to clipboard
 # Usage: kittyx-git-url-copy <file> [line_number]

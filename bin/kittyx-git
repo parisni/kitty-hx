@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
 
 # Colors
 CATPPUCCIN_GREEN='#a6da95'

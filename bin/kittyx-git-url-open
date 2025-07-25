@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
 
 # Open Git URL for current file/cursor line in browser
 # Usage: kittyx-git-url-open <file> [line_number]

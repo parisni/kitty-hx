@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
 
 # Generate Git repository URLs for files and line numbers
 # Usage: kittyx-git-url <file> [line_number] [end_line_number]

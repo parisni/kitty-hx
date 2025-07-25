@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
 
 FILE="$1"
 
