@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Colors
+CATPPUCCIN_GREEN='#a6da95'
+CATPPUCCIN_MAUVE='#c6a0f6'
+
+# Key bindings
+COPY_FILE_PATH='ctrl-y:execute(echo -n {} | tee >(copyq add -) | copyq copy -)'
+KEYS="$COPY_FILE_PATH"
+
+# Parse arguments
+EXIT_ON_EXECUTION=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --exit-on-execution)
+      EXIT_ON_EXECUTION=true
+      KEYS="$KEYS+abort"
+      shift
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+# Check if we're in a git repository
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  echo "Error: Not inside a Git repository."
+  exit 1
+fi
+
+# Get modified files using git status
+get_modified_files() {
+  git status --porcelain | cut -c4-
+}
+
+# Get the list of modified files
+readarray -t modified_files < <(get_modified_files)
+
+if [[ ${#modified_files[@]} -eq 0 ]]; then
+  echo "No modified files found."
+  exit 0
+fi
+
+# Use fzf to select files with multi-selection support
+IFS=$'\n' readarray -t selected_files < <(
+  printf '%s\n' "${modified_files[@]}" |
+    fzf --ansi \
+      --border \
+      --color "hl+:$CATPPUCCIN_GREEN:reverse,hl:$CATPPUCCIN_MAUVE:reverse" \
+      --height '100%' \
+      --multi \
+      --print-query --exit-0 \
+      --preview 'if git ls-files --error-unmatch {} >/dev/null 2>&1; then git diff --color=always {}; else git diff --color=always --no-index /dev/null {}; fi' \
+      --scrollbar '▍' \
+      --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
+      --bind "$KEYS"
+)
+
+# Print the selected file paths
+for file in "${selected_files[@]:1}"; do
+  echo "$file"
+done

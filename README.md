@@ -8,6 +8,7 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 |------------|------|-------------|---------|
 | `space-g-b` | Normal | Git blame for current line | `blame` |
 | `space-g-f` | Normal | Interactive git file browser with commit history | `kittyx-git-file-tab` |
+| `space-g-g` | Normal | Interactive browser for git modified files | `kittyx-git-tab` |
 | `space-g-u` | Normal | Copy Git URL to clipboard (cursor line) | `kittyx-git-url-copy` |
 | `space-g-o` | Normal | Open Git URL in browser (cursor line) | `kittyx-git-url-open` |
 | `space-/` | Normal | Live grep search in new tab | `kittyx-live-grep-tab` |
@@ -19,6 +20,14 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - Interactive commit history browser with fzf
 - Preview commit details and changes
 - Direct PR/commit URL opening with `ctrl-o`
+- Launches in dedicated Kitty tab
+
+### Git Modified Files Browser
+- Interactive browser for git modified/staged/untracked files
+- Multi-selection support with fzf
+- File preview with syntax highlighting
+- Copy file paths with `ctrl-y`
+- Automatic Helix integration for opening selected files
 - Launches in dedicated Kitty tab
 
 ### Live Grep Search
@@ -53,7 +62,7 @@ Add the following key mappings to your Helix configuration file (`~/.config/heli
 
 ```toml
 [keys.normal.space]
-"g" = { "b" = ":sh blame %{buffer_name} %{cursor_line}", "f" = ":sh kittyx-git-file-tab %{buffer_name}", "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}" }
+"g" = { "b" = ":sh blame %{buffer_name} %{cursor_line}", "f" = ":sh kittyx-git-file-tab %{buffer_name}", "g" = ":sh kittyx-git-tab", "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}" }
 "/" = ":sh kittyx-live-grep-tab"
 
 [keys.select.space]
