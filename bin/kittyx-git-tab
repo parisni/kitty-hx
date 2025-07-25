@@ -15,7 +15,7 @@ kitty @ launch \
     fi
 
     # Run interactive git modified files browser
-    FILE_PATHS=\$(kittyx-git --exit-on-execution | tr '\n' ' ' | sed 's/ *\$//')
+    FILE_PATHS=\$(kittyx-git | tr '\n' ' ' | sed 's/ *\$//')
 
     # Get the first tab's active window ID in the current active OS window
     HELIX_WINDOW_ID=\$(kitty @ ls | jq -r '
