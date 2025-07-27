@@ -1,0 +1,10 @@
+#!/bin/bash
+
+INPUT="$(</tmp/sel.txt)"
+
+if [ -n "$1" ]; then
+  scooter -s "$INPUT" --hidden -P -R -I "$1"
+else
+  scooter -s "$INPUT" --hidden -P
+fi
+
