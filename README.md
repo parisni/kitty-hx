@@ -6,15 +6,27 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 
 | Keybinding | Mode | Description | Script |
 |------------|------|-------------|---------|
-| `space-g-b` | Normal | Git blame for current line | `blame` |
-| `space-g-f` | Normal | Interactive git file browser with commit history | `kittyx-git-file-tab` |
-| `space-g-g` | Normal | Interactive browser for git modified files | `kittyx-git-tab` |
+| `space-g-b` | Normal | Git blame with PR/commit URLs | `kittyx-git-blame` |
+| `space-g-f` | Normal | Interactive git file browser with commit history | `kittyx-tab git-file` |
+| `space-g-g` | Normal | Interactive git browser (lazygit) | `kittyx-tab git` |
+| `space-g-l` | Normal | Interactive git log browser | `kittyx-tab git-log` |
 | `space-g-u` | Normal | Copy Git URL to clipboard (cursor line) | `kittyx-git-url-copy` |
 | `space-g-o` | Normal | Open Git URL in browser (cursor line) | `kittyx-git-url-open` |
 | `space-/` | Normal | Live grep search in new tab | `kittyx-live-grep-tab` |
 | `space-/` | Select | Live grep with selected text as query | `kittyx-live-grep-tab` (piped) |
+| `space-r` | Normal | Replace in current file | `kittyx-replace` |
+| `space-R` | Normal | Replace across project | `kittyx-replace` |
+| `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
+| `space-R` | Select | Replace selected text across project | `kittyx-replace` |
 
 ## Core Features
+
+### Enhanced Git Blame
+- **Smart PR/commit URL detection**: Automatically detects and shows PR URLs when available, falls back to commit URLs
+- **Multi-platform support**: GitHub, GitLab, Bitbucket, Azure DevOps, and Gerrit
+- **Platform-specific patterns**: Recognizes different PR formats (`#123` for GitHub, `!123` for GitLab, Change-Id for Gerrit)
+- **Rich output**: Shows author, time since commit, commit message, and clickable URL
+- **URL-only mode**: `--url-only` flag for integration with other tools
 
 ### Git File Browser
 - Interactive commit history browser with fzf
@@ -22,13 +34,10 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - Direct PR/commit URL opening with `ctrl-o`
 - Launches in dedicated Kitty tab
 
-### Git Modified Files Browser
-- Interactive browser for git modified/staged/untracked files
-- Multi-selection support with fzf
-- File preview with syntax highlighting
-- Copy file paths with `ctrl-y`
-- Automatic Helix integration for opening selected files
-- Launches in dedicated Kitty tab
+### Git Browser Integration
+- **Lazygit integration**: Full-featured git interface in dedicated tab
+- **Git log browser**: Interactive commit history with fzf
+- **Modified files browser**: Interactive browser for git status files
 
 ### Live Grep Search
 - Interactive ripgrep with fzf interface
@@ -41,6 +50,12 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - Context-aware URL generation for multiple platforms
 - Direct browser opening or clipboard copying
 - Supports current cursor line positioning
+- Works with files and line numbers
+
+### Text Replacement
+- **File-scoped replacement**: Replace in current file with interactive preview
+- **Project-wide replacement**: Replace across entire project with scooter integration
+- **Selection-aware**: Works with selected text in Helix
 
 ## Installation
 
@@ -62,18 +77,31 @@ Add the following key mappings to your Helix configuration file (`~/.config/heli
 
 ```toml
 [keys.normal.space]
-"g" = { "b" = ":sh blame %{buffer_name} %{cursor_line}", "f" = ":sh kittyx-git-file-tab %{buffer_name}", "g" = ":sh kittyx-git-tab", "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}" }
 "/" = ":sh kittyx-live-grep-tab"
+g = { "b" = ":sh kittyx-git-blame %{buffer_name} %{cursor_line}", "f" = ":sh kittyx-tab git-file %{buffer_name}", "l" = ":sh kittyx-tab git-log", "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}", "g" = ":sh kittyx-tab git" }
+R = [ ":write-all", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
+r = [ ":write-all", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
 
 [keys.select.space]
 "/" = ":pipe kittyx-live-grep-tab"
+r = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
+R = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
 ```
 
 ## Supported Git Platforms
+
+### Git Blame PR/Commit URL Support
+- **GitHub**: Detects `#123`, `(#123)`, `Merge pull request #123` patterns → `/pull/123`
+- **GitLab**: Detects `!123`, `See merge request !123` patterns → `/-/merge_requests/123`
+- **Bitbucket**: Detects `#123` patterns → `/pull-requests/123`
+- **Azure DevOps**: Detects `Merged PR 123`, `Pull request #123` patterns → `/pullrequest/123`
+- **Gerrit**: Detects `Change-Id: I...` patterns → `/q/Change-Id` (redirects to actual review)
+
+### Git URL Generation (file URLs)
 - **GitHub**: `#L42` (line anchors)
 - **GitLab**: `#L42` (line anchors)  
 - **Bitbucket**: `#lines-42` (line anchors)
-- **Gerrit**: `#42` (line anchors)
+- **Gerrit**: Gitiles format with line anchors
 
 ## Requirements
 - [Helix Editor](https://helix-editor.com/)
