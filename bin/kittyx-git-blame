@@ -1,0 +1,329 @@
+#!/bin/bash
+#
+# Script to extract PR/commit URL and information from git blame for a specific file line
+
+set -e
+
+# Initialize variables
+DEBUG=0
+URL_ONLY=0
+FILE=""
+LINE=""
+
+# Function to display help message
+show_help() {
+  cat << EOF
+Usage: $(basename "$0") [OPTIONS] <file_path> <line_number>
+   OR: $(basename "$0") [OPTIONS] <line_number> <file_path>
+
+Extract PR/commit information and URL from git blame for a specific file line.
+Supports GitHub, GitLab, Bitbucket, Azure DevOps, and Gerrit platforms.
+By default, outputs author name, time since commit, commit message, and URL.
+
+Options:
+  -h, --help       Show this help message and exit
+  -d, --debug      Enable debug output
+  -u, --url-only   Output only the URL, suitable for opening in browser
+EOF
+  exit 0
+}
+
+
+# Function to print debug messages when debug mode is enabled
+debug() {
+  if [ $DEBUG -eq 1 ]; then
+    echo "[DEBUG] $1" >&2
+  fi
+}
+
+# Function to display error messages and exit
+error() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
+
+# Check if git is available
+command -v git >/dev/null 2>&1 || error "git command not found. Please install git."
+
+# Process command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      show_help
+      ;;
+    -d|--debug)
+      DEBUG=1
+      shift
+      ;;
+    -u|--url-only)
+      URL_ONLY=1
+      shift
+      ;;
+    *)
+      # Try to determine if the argument is a line number or file path
+      if [[ "$1" =~ ^[0-9]+$ ]]; then
+        # It's a number, assume it's a line number
+        LINE="$1"
+      else
+        # It's not a number, assume it's a file path
+        FILE="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Validate required arguments
+if [ -z "$FILE" ] || [ -z "$LINE" ]; then
+  error "Missing required arguments. See --help for usage."
+fi
+
+debug "File: $FILE"
+debug "Line: $LINE"
+
+# Check if we're in a git repository
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || error "Not in a git repository"
+
+# Get git root directory
+GIT_ROOT=$(git rev-parse --show-toplevel)
+debug "Git root: $GIT_ROOT"
+
+# Resolve file path relative to git root if needed
+if [ ! -f "$FILE" ]; then
+  # Try with git root
+  if [ -f "$GIT_ROOT/$FILE" ]; then
+    FILE="$GIT_ROOT/$FILE"
+    debug "Resolved file path: $FILE"
+  else
+    error "File does not exist: $FILE (tried $GIT_ROOT/$FILE)"
+  fi
+fi
+
+# Get the git blame info for the specified line
+blame_info=$(git blame -L "${LINE},${LINE}" "${FILE}" 2>&1) || error "Failed to get git blame info: $blame_info"
+debug "Blame info: $blame_info"
+
+# Extract the commit ID (possibly shortened)
+short_commit_id=$(echo "$blame_info" | awk '{print $1}')
+[ -n "$short_commit_id" ] || error "Could not extract commit ID from blame output"
+debug "Short Commit ID: $short_commit_id"
+
+# Get the full commit hash
+full_commit_id=$(git rev-parse "$short_commit_id" 2>&1) || error "Failed to get full commit hash: $full_commit_id"
+debug "Full Commit ID: $full_commit_id"
+
+# Get the remote URL
+remote_url=$(git remote get-url origin 2>&1) || error "Failed to get remote URL: $remote_url"
+debug "Original remote URL: $remote_url"
+
+# Process remote URL and detect platform
+process_remote_url() {
+  local url="$1"
+  local platform=""
+  
+  # Enhanced URL processing inspired by git-url script
+  if [[ "$url" =~ ^ssh://([^:]+):29418/(.+)$ ]]; then
+    # Gerrit SSH format: ssh://host:29418/project
+    local host="${BASH_REMATCH[1]}"
+    local project="${BASH_REMATCH[2]}"
+    url="https://$host/$project"
+    platform="gerrit"
+    debug "Detected Gerrit platform"
+  elif [[ "$url" =~ ^git@([^:]+):(.+)\.git$ ]]; then
+    # Standard SSH format: git@host:path.git
+    local host="${BASH_REMATCH[1]}"
+    local path_part="${BASH_REMATCH[2]}"
+    url="https://$host/$path_part"
+    debug "Converted SSH URL to HTTPS"
+  elif [[ "$url" =~ ^https://([^/]+)/(.+)\.git$ ]]; then
+    # HTTPS with .git suffix
+    url="${url%.git}"
+  elif [[ "$url" =~ ^https://([^/]+)/(.+)$ ]]; then
+    # Already HTTPS without .git
+    url="$url" 
+  fi
+
+  # Remove any username@ part from the URL
+  url=$(echo "$url" | sed -E 's|https://[^@]+@|https://|')
+  
+  # Detect platform if not already detected
+  if [[ -z "$platform" ]]; then
+    if [[ "$url" == *"github.com"* ]]; then
+      platform="github"
+    elif [[ "$url" == *"gitlab"* ]]; then
+      platform="gitlab"
+    elif [[ "$url" == *"bitbucket"* ]]; then
+      platform="bitbucket"
+    elif [[ "$url" == *"dev.azure.com"* ]]; then
+      platform="azure"
+    elif [[ "$url" == *"review."* ]] || [[ "$url" == *"gerrit"* ]]; then
+      platform="gerrit"
+    else
+      platform="unknown"
+    fi
+    debug "Detected platform: $platform"
+  fi
+  
+  echo "$url|$platform"
+}
+
+# Process the remote URL and extract platform info
+url_and_platform=$(process_remote_url "$remote_url")
+remote_url=$(echo "$url_and_platform" | cut -d'|' -f1)
+platform=$(echo "$url_and_platform" | cut -d'|' -f2)
+debug "Processed remote URL: $remote_url"
+debug "Platform: $platform"
+
+# Get author name, time since commit, and commit message
+author_name=$(git show -s --format="%an" "$full_commit_id")
+commit_time=$(git show -s --format="%ar" "$full_commit_id") # already in "X time ago" format
+commit_msg=$(git show -s --format="%s" "$full_commit_id")
+debug "Author: $author_name"
+debug "Time: $commit_time"
+debug "Subject: $commit_msg"
+
+# Get the full commit message
+full_commit_msg=$(git show -s --format=%B "$full_commit_id" 2>&1) || error "Failed to get commit message"
+if [ $DEBUG -eq 1 ]; then
+  debug "Full commit message:"
+  echo "$full_commit_msg" | sed 's/^/    /' >&2
+fi
+
+# Enhanced PR number detection for multiple platforms
+find_pr_number() {
+  local msg="$1"
+  local platform="$2"
+  local pr_number=""
+  
+  # GitHub patterns
+  if [[ "$platform" == "github" ]]; then
+    # Format: "Merge pull request #123"
+    pr_number=$(echo "$msg" | grep -oE "Merge pull request #[0-9]+" | grep -oE "[0-9]+" | head -1)
+    
+    # Format: "PR #123:" or "Pull request #123"
+    if [ -z "$pr_number" ]; then
+      pr_number=$(echo "$msg" | grep -oE "(PR|Pull request) #[0-9]+" | grep -oE "[0-9]+" | head -1)
+    fi
+    
+    # Format: "(#123)" - common in squash merges
+    if [ -z "$pr_number" ]; then
+      pr_number=$(echo "$msg" | grep -oE "\\(#[0-9]+\\)" | grep -oE "[0-9]+" | head -1)
+    fi
+  fi
+  
+  # GitLab patterns
+  if [[ "$platform" == "gitlab" ]]; then
+    # Format: "Merge branch 'feature' into 'main'" (check for !123 pattern)
+    pr_number=$(echo "$msg" | grep -oE "\\!([0-9]+)" | grep -oE "[0-9]+" | head -1)
+    
+    # Format: "See merge request !123"
+    if [ -z "$pr_number" ]; then
+      pr_number=$(echo "$msg" | grep -oE "See merge request ![0-9]+" | grep -oE "[0-9]+" | head -1)
+    fi
+    
+    # Format: "Closes #123" or "Fixes #123"
+    if [ -z "$pr_number" ]; then
+      pr_number=$(echo "$msg" | grep -oE "(Closes|Fixes|Resolves) #[0-9]+" | grep -oE "[0-9]+" | head -1)
+    fi
+  fi
+  
+  # Azure DevOps patterns
+  if [[ "$platform" == "azure" ]]; then
+    # Format: "Merged PR 123:"
+    pr_number=$(echo "$msg" | grep -oE "Merged PR [0-9]+" | grep -oE "[0-9]+" | head -1)
+    
+    # Format: "Pull request #123"
+    if [ -z "$pr_number" ]; then
+      pr_number=$(echo "$msg" | grep -oE "Pull request #[0-9]+" | grep -oE "[0-9]+" | head -1)
+    fi
+  fi
+  
+  # Gerrit patterns (Change-Id based)
+  if [[ "$platform" == "gerrit" ]]; then
+    # Extract Change-Id which is the reliable identifier for Gerrit
+    pr_number=$(echo "$msg" | grep -oE "Change-Id: I[a-f0-9]+" | head -1)
+    
+    if [ -n "$pr_number" ]; then
+      # Extract just the Change-Id part (I followed by hex)
+      pr_number=$(echo "$pr_number" | sed 's/Change-Id: //')
+      debug "Found Gerrit Change-Id: $pr_number"
+    fi
+  fi
+  
+  # Fallback patterns for any platform
+  if [ -z "$pr_number" ]; then
+    # Generic patterns
+    pr_number=$(echo "$msg" | grep -oE "\\(#[0-9]+\\)" | grep -oE "[0-9]+" | head -1)
+    
+    if [ -z "$pr_number" ]; then
+      pr_number=$(echo "$msg" | grep -oE "#[0-9]+" | grep -oE "[0-9]+" | head -1)
+    fi
+  fi
+  
+  echo "$pr_number"
+}
+
+pr_number=$(find_pr_number "$full_commit_msg" "$platform")
+debug "PR number found: $pr_number"
+
+# Generate platform-specific PR URL
+generate_pr_url() {
+  local base_url="$1"
+  local platform="$2"
+  local pr_number="$3"
+  
+  case "$platform" in
+    "github")
+      echo "$base_url/pull/$pr_number"
+      ;;
+    "gitlab")
+      echo "$base_url/-/merge_requests/$pr_number"
+      ;;
+    "bitbucket")
+      echo "$base_url/pull-requests/$pr_number"
+      ;;
+    "azure")
+      echo "$base_url/pullrequest/$pr_number"
+      ;;
+    "gerrit")
+      # Gerrit URL format: https://host/q/Change-Id
+      # This is simpler and more reliable than using change numbers
+      local host=$(echo "$base_url" | sed -E 's|https://([^/]+)/.*|\1|')
+      
+      if [[ -n "$host" ]]; then
+        echo "https://$host/q/$pr_number"
+      else
+        echo ""
+      fi
+      ;;
+    *)
+      # Default to GitHub-style for unknown platforms
+      echo "$base_url/pull/$pr_number"
+      ;;
+  esac
+}
+
+# Generate URL
+if [ -n "$pr_number" ]; then
+  url=$(generate_pr_url "$remote_url" "$platform" "$pr_number")
+  if [ -n "$url" ]; then
+    debug "Generated PR URL: $url"
+  else
+    # Fallback to commit URL if PR URL generation failed
+    url="${remote_url}/commit/${full_commit_id}"
+    debug "PR URL generation failed, using commit URL: $url"
+  fi
+else
+  url="${remote_url}/commit/${full_commit_id}"
+  debug "No PR number found, using commit URL: $url"
+fi
+
+# Output based on mode
+if [ $URL_ONLY -eq 1 ]; then
+  # URL-only mode
+  echo "$url"
+else
+  # Default rich output
+  echo "$author_name, $commit_time • $commit_msg"
+  echo "$url"
+fi
