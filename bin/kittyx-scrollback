@@ -51,17 +51,32 @@ if [[ -f ~/.config/helix/config.toml ]]; then
     if rg -q '^\[keys\.normal\]' "$configfile"; then
         # Add q mapping after existing [keys.normal] section
         sed -i '/^\[keys\.normal\]/a q = ":quit!"' "$configfile"
+        
+        # Add y mapping to [keys.select] section if it exists, otherwise create it
+        if rg -q '^\[keys\.select\]' "$configfile"; then
+            sed -i '/^\[keys\.select\]/a y = "yank_main_selection_to_clipboard"' "$configfile"
+        else
+            echo "" >> "$configfile"
+            echo "[keys.select]" >> "$configfile"
+            echo 'y = "yank_main_selection_to_clipboard"' >> "$configfile"
+        fi
     else
         # Append new [keys.normal] section
         echo "" >> "$configfile"
         echo "[keys.normal]" >> "$configfile"
         echo 'q = ":quit!"' >> "$configfile"
+        echo "" >> "$configfile"
+        echo "[keys.select]" >> "$configfile"
+        echo 'y = "yank_main_selection_to_clipboard"' >> "$configfile"
     fi
 else
     # If no default config, create minimal one
     cat > "$configfile" <<EOF
 [keys.normal]
 q = ":quit!"
+
+[keys.select]
+y = "yank_main_selection_to_clipboard"
 EOF
 fi
 
