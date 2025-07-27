@@ -18,6 +18,8 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
 | `space-R` | Select | Replace selected text across project | `kittyx-replace` |
+| `ctrl-space` | Kitty | View scrollback buffer in Helix overlay | `kittyx-scrollback` |
+| `alt-space` | Kitty | View last command output in Helix overlay | `kittyx-scrollback` |
 
 ## Core Features
 
@@ -57,6 +59,13 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - **Project-wide replacement**: Replace across entire project with scooter integration
 - **Selection-aware**: Works with selected text in Helix
 
+### Scrollback Viewer
+- **Terminal scrollback integration**: View terminal scrollback buffer in Helix overlay
+- **Command output viewer**: View last command output in Helix overlay  
+- **Smart cursor positioning**: Positions at cursor location for vim/less windows, jumps to end for other content
+- **Custom keybindings**: Inherits your Helix config with added `q` key for force quit
+- **Fast temporary files**: Uses `/dev/shm` for optimal performance
+
 ## Installation
 
 1. Clone the repository:
@@ -86,6 +95,16 @@ r = [ ":write-all", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":
 "/" = ":pipe kittyx-live-grep-tab"
 r = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
 R = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
+```
+
+### Kitty Configuration
+
+Add the following to your Kitty configuration file (`~/.config/kitty/kitty.conf`):
+
+```bash
+# Scrollback viewer with Helix
+map ctrl+space launch --type=overlay --title=current --stdin-source=@screen_scrollback kittyx-scrollback
+map alt+space launch --type=overlay --title=current --stdin-source=@last_cmd_output kittyx-scrollback
 ```
 
 ## Supported Git Platforms
