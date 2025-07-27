@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
+
+# Create temporary files
+tmpfile=$(mktemp /dev/shm/hx-stdin-XXXXXX)
+configfile="/tmp/kittyx-scrollback-config.toml"
+
+# Cleanup function
+cleanup() {
+    [[ -f "$tmpfile" ]] && rm -f "$tmpfile"
+    [[ -f "$configfile" ]] && rm -f "$configfile"
+}
+trap cleanup EXIT
+
+# Read stdin to temporary file
+cat > "$tmpfile"
+
+# Default position
+line_num=1
+
+# Parse KITTY_PIPE_DATA if available
+if [[ -n "$KITTY_PIPE_DATA" ]]; then
+    IFS=':' read -r scrolled_by coords linecol <<< "$KITTY_PIPE_DATA"
+    
+    if [[ -n "$coords" ]]; then
+        IFS=',' read -r cursor_x cursor_y <<< "$coords"
+        line_num="${cursor_y:-1}"
+    fi
+fi
+
+# Get window title to determine behavior
+target_line="$line_num"
+if [[ -n "$KITTY_WINDOW_ID" ]]; then
+    title=$(kitty @ ls | jq -r ".[] | .tabs[].windows[] | select(.id == $KITTY_WINDOW_ID) | .title" 2>/dev/null || echo "")
+    
+    # If not vim/less, jump to last non-empty line
+    if [[ ! "$title" =~ (vim|less) ]]; then
+        # Use rg to find last non-empty line number
+        last_line=$(rg -n '\S' "$tmpfile" | tail -1 | cut -d: -f1)
+        last_line=${last_line:-1}
+        target_line="$last_line"
+    fi
+fi
+
+# Create custom config by copying default and adding q mapping
+if [[ -f ~/.config/helix/config.toml ]]; then
+    cp ~/.config/helix/config.toml "$configfile"
+    # Check if [keys.normal] section exists
+    if rg -q '^\[keys\.normal\]' "$configfile"; then
+        # Add q mapping after existing [keys.normal] section
+        sed -i '/^\[keys\.normal\]/a q = ":quit!"' "$configfile"
+    else
+        # Append new [keys.normal] section
+        echo "" >> "$configfile"
+        echo "[keys.normal]" >> "$configfile"
+        echo 'q = ":quit!"' >> "$configfile"
+    fi
+else
+    # If no default config, create minimal one
+    cat > "$configfile" <<EOF
+[keys.normal]
+q = ":quit!"
+EOF
+fi
+
+# Launch helix with position using custom config
+exec hx "+$target_line" "$tmpfile" --config "$configfile" < /dev/null
