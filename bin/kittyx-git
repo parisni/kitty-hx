@@ -3,97 +3,9 @@ set -eo pipefail
 
 export SHELL="$(command -v bash)"
 
-# Colors
-CATPPUCCIN_GREEN='#a6da95'
-CATPPUCCIN_MAUVE='#c6a0f6'
-
-# Key bindings
-COPY_FILE_PATH='ctrl-y:execute(echo -n {2} | tee >(copyq add -) | copyq copy -)'
-STAGE_FILE='ctrl-s:execute(git add {2})+reload(get_modified_files_colored)'
-DISCARD_CHANGES='ctrl-d:execute(git restore {2})+reload(get_modified_files_colored)'
-UNSTAGE_FILE='ctrl-u:execute(git reset HEAD {2})+reload(get_modified_files_colored)'
-
-# Check if we're in a git repository
 if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-  echo "Error: Not inside a Git repository."
+  echo "Not inside a Git repository."
   exit 1
 fi
 
-# Get modified files using git status
-get_modified_files() {
-  git status --porcelain | cut -c4-
-}
-
-# Get modified files with color coding based on staging status
-get_modified_files_colored() {
-  git status --porcelain | while IFS= read -r line; do
-    status="${line:0:2}"
-    filename="${line:3}"
-    
-    # Skip empty lines
-    [[ -z "$filename" ]] && continue
-    
-    # Handle renamed files (format: "old -> new")
-    if [[ "$filename" == *" -> "* ]]; then
-      filename="${filename#* -> }"
-    fi
-    
-    # Only include files that exist (not deleted)
-    if [[ "$status" != " D" && "$status" != "D " && -f "$filename" ]]; then
-      # Color based on staging status
-      if [[ "${status:0:1}" != " " ]]; then
-        # Staged (first character is not space) - green
-        printf "\033[32m%s\033[0m %s\n" "$status" "$filename"
-      else
-        # Unstaged (first character is space) - red  
-        printf "\033[31m%s\033[0m %s\n" "$status" "$filename"
-      fi
-    fi
-  done
-}
-
-# Export function for fzf reload
-export -f get_modified_files_colored
-
-# Get the list of modified files (colored)
-readarray -t modified_files_colored < <(get_modified_files_colored)
-
-if [[ ${#modified_files_colored[@]} -eq 0 ]]; then
-  echo "No modified files found."
-  exit 0
-fi
-
-# Use fzf to select files with multi-selection support
-IFS=$'\n' readarray -t selected_files < <(
-  printf '%s\n' "${modified_files_colored[@]}" |
-    fzf --ansi \
-      --border \
-      --color "hl+:$CATPPUCCIN_GREEN:reverse,hl:$CATPPUCCIN_MAUVE:reverse" \
-      --height '100%' \
-      --multi \
-      --print-query --exit-0 \
-      --preview 'bash -c '\''
-        RAW_STATUS=$(git status --porcelain | grep " {2}$" | head -1)
-        STATUS="${RAW_STATUS:0:2}"
-        if [[ "${STATUS:0:1}" != " " && "${STATUS:0:1}" != "?" ]]; then
-          git diff --cached --color=always {2}
-        elif git ls-files --error-unmatch {2} >/dev/null 2>&1; then
-          git diff --color=always {2}
-        else
-          git diff --color=always --no-index /dev/null {2}
-        fi
-      '\''' \
-      --scrollbar '▍' \
-      --bind "$COPY_FILE_PATH" \
-      --bind "$STAGE_FILE" \
-      --bind "$UNSTAGE_FILE" \
-      --bind "$DISCARD_CHANGES" \
-      --bind 'ctrl-j:preview-down' \
-      --bind 'ctrl-k:preview-up'
-)
-
-# Print the selected file paths (extract filename from colored output)
-for line in "${selected_files[@]:1}"; do
-  # Extract filename from the colored format "STATUS filename"
-  echo "$line" | sed 's/^[[:space:]]*[^ ]*[[:space:]]*//' | sed 's/\x1b\[[0-9;]*m//g'
-done
+lazygit status --screen-mode=half
