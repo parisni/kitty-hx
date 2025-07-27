@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
+
+SCRIPT_NAME="$1"
+
+if [[ -z "$SCRIPT_NAME" ]]; then
+  echo "Error: Must provide a script name."
+  echo "Usage: kittyx-tab <script-name> [args...]"
+  echo "Example: kittyx-tab git-file /path/to/file"
+  exit 1
+fi
+
+# Check if the target script exists
+TARGET_SCRIPT="kittyx-$SCRIPT_NAME"
+SCRIPT_PATH="$(dirname "$0")/$TARGET_SCRIPT"
+
+if [[ ! -f "$SCRIPT_PATH" ]]; then
+  echo "Error: Script '$TARGET_SCRIPT' not found in bin directory."
+  exit 1
+fi
+
+# Shift to remove the script name from arguments
+shift
+
+# Build the title - use script name and show arguments if any
+if [[ $# -gt 0 ]]; then
+  TITLE="$SCRIPT_NAME $*"
+else
+  TITLE="$SCRIPT_NAME"
+fi
+
+kitty @ launch \
+  --type=tab \
+  --title="$TITLE" \
+  --cwd=current \
+  -- bash -c "$TARGET_SCRIPT $(printf '%q ' "$@")"
