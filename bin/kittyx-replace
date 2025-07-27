@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
+set -eo pipefail
 
-INPUT="$(</tmp/sel.txt)"
+export SHELL="$(command -v bash)"
 
-if [ -n "$1" ]; then
-  scooter --search-text "$INPUT" --print-results -I "$1"
+SEL_FILE="/tmp/kittyx-replace.tmp"
+
+# Check if sel.txt exists and read it if it does
+if [[ -f "$SEL_FILE" ]]; then
+  INPUT="$(<"$SEL_FILE")"
+  rm -f "$SEL_FILE"
+  
+  if [ -n "$1" ]; then
+    scooter --search-text "$INPUT" --print-results -I "$1"
+  else
+    scooter --search-text "$INPUT" --print-results --hidden 
+  fi
 else
-  scooter --search-text "$INPUT" --print-results --hidden 
+  # No selection text, run without --search-text
+  if [ -n "$1" ]; then
+    scooter --print-results -I "$1"
+  else
+    scooter --print-results --hidden 
+  fi
 fi
-
-rm -f /tmp/sel.txt
 
