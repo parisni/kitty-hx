@@ -20,7 +20,7 @@ URL=$(kittyx-git-url "$FILE" "$LINE_NUMBER")
 if [[ $? -eq 0 && -n "$URL" ]]; then
   # Copy to clipboard using multiple methods for compatibility
   if command -v copyq >/dev/null 2>&1; then
-    echo -n "$URL" | copyq copy -
+    echo -n "$URL" | tee >(copyq add -) | copyq copy - >/dev/null 2>&1
   elif command -v xclip >/dev/null 2>&1; then
     echo -n "$URL" | xclip -selection clipboard
   elif command -v wl-copy >/dev/null 2>&1; then

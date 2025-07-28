@@ -53,6 +53,7 @@ done
 IFS=$'\n' readarray -t selected_matches < <(
   rg --color=always --line-number --no-heading --smart-case "${*:-}" ${SEARCH_DIR:+$SEARCH_DIR} |
     fzf --ansi \
+      --cycle \
       --border \
       --color "hl+:$CATPPUCCIN_GREEN:reverse,hl:$CATPPUCCIN_MAUVE:reverse" \
       --delimiter ':' \
@@ -60,6 +61,7 @@ IFS=$'\n' readarray -t selected_matches < <(
       --exact \
       --print-query \
       --preview 'bash -c "L={2}; batcat {1} --theme=\"Solarized (light)\" --color=always --plain --highlight-line \$L --line-range \$((L>10 ? L-10 : 1)):"' \
+      --preview-window 'up,60%' \
       --scrollbar '▍' \
       --bind "$KEYS" \
       --bind 'ctrl-j:preview-down' \
