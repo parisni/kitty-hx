@@ -3,6 +3,9 @@ set -eo pipefail
 
 export SHELL="$(command -v bash)"
 
+# Clean up any previous results
+rm -f /tmp/kittyx-tree-result
+
 # Function to find first existing directory in path hierarchy
 find_existing_directory() {
   local path="$1"
@@ -34,27 +37,11 @@ fi
 
 # If it's a file, use its directory and pass the file to yazi
 if [[ -f "$STARTING_PATH" ]]; then
-  CHOSEN_FILE=$(yazi "$STARTING_PATH" --chooser-file=/dev/stdout)
+  yazi "$STARTING_PATH" --chooser-file=/tmp/kittyx-tree-result
 elif [[ -d "$STARTING_PATH" ]]; then
-  CHOSEN_FILE=$(yazi "$STARTING_PATH" --chooser-file=/dev/stdout)
+  yazi "$STARTING_PATH" --chooser-file=/tmp/kittyx-tree-result
 else
   # Find the nearest existing directory in the path hierarchy
   FALLBACK_DIR=$(find_existing_directory "$STARTING_PATH")
-  CHOSEN_FILE=$(yazi "$FALLBACK_DIR" --chooser-file=/dev/stdout)
-fi
-
-# If a file was chosen, open it in helix
-if [[ -n "$CHOSEN_FILE" && -f "$CHOSEN_FILE" ]]; then
-    # Get the helix tab's window ID
-    HELIX_WINDOW_ID=$(kitty @ ls | jq -r '
-      .[]
-      | .tabs[]
-      | .windows[]
-      | select(.foreground_processes[]?.cmdline[0] == "hx")
-      | .id' | head -1)
-
-    if [[ -n "$HELIX_WINDOW_ID" ]]; then
-      # Send all commands in one go: enter command mode, open file, execute
-      kitty @ send-text --match id:"$HELIX_WINDOW_ID" ":o $CHOSEN_FILE"$'\r'
-     fi
+  yazi "$FALLBACK_DIR" --chooser-file=/tmp/kittyx-tree-result
 fi

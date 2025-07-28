@@ -12,13 +12,15 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 | `space-g-l` | Normal | Interactive git log browser | `kittyx-tab git-log` |
 | `space-g-u` | Normal | Copy Git URL to clipboard (cursor line) | `kittyx-git-url-copy` |
 | `space-g-o` | Normal | Open Git URL in browser (cursor line) | `kittyx-git-url-open` |
-| `space-/` | Normal | Live grep search in new tab | `kittyx-live-grep-tab` |
-| `space-/` | Select | Live grep with selected text as query | `kittyx-live-grep-tab` (piped) |
-| `space-e` | Normal | File browser (yazi) in new tab | `kittyx-tab tree` |
+| `space-/` | Normal | Live grep search - opens selected file | `kittyx-live-grep-tab` |
+| `space-/` | Select | Live grep with selected text as query - opens selected file | `kittyx-live-grep-tab` |
+| `space-e` | Normal | File browser (yazi) - opens selected file | `kittyx-tab tree` |
 | `space-r` | Normal | Replace in current file | `kittyx-replace` |
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
 | `space-R` | Select | Replace selected text across project | `kittyx-replace` |
+| `space-b-d` | Normal | Close current buffer | Built-in |
+| `space-b-f` | Normal | Buffer picker | Built-in |
 | `ctrl-space` | Kitty | View scrollback buffer in Helix overlay | `kittyx-scrollback` |
 | `alt-space` | Kitty | View last command output in Helix overlay | `kittyx-scrollback` |
 
@@ -43,18 +45,19 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - **Modified files browser**: Interactive browser for git status files
 
 ### Live Grep Search
-- Interactive ripgrep with fzf interface
+- Interactive ripgrep with fzf interface in dedicated tab
 - Copy file:line references with `ctrl-y`
 - Selection mode prepopulates search query
-- Automatic Helix integration for opening results
+- **Seamless file opening**: Selected files automatically open in Helix after tab closes
 - Rich syntax highlighting in preview
+- Single file selection only (no multi-select)
 
 ### File Browser (Yazi Integration)
 - **Interactive file browser**: Full-featured yazi file manager in dedicated tab
 - **Smart directory detection**: Opens from current buffer's directory or specified path
-- **Seamless Helix integration**: Selected files automatically open in Helix
+- **Seamless file opening**: Selected files automatically open in Helix after tab closes
 - **Live grep integration**: Press `Shift+Ctrl+F` in yazi to search within the current directory
-- **Auto-cleanup**: Yazi tab automatically closes after file selection
+- **Unified workflow**: Both yazi selection and live-grep from yazi work seamlessly together
 
 ### Git URL Generation
 - Context-aware URL generation for multiple platforms
@@ -94,14 +97,28 @@ Add the following key mappings to your Helix configuration file (`~/.config/heli
 
 ```toml
 [keys.normal.space]
-"/" = ":sh kittyx-live-grep-tab"
-e = ":sh kittyx-tab tree '%{buffer_name}'"
+# Live grep search with automatic file opening
+"/" = [":open %sh{kittyx-live-grep-tab}"]
+
+# Git operations
 g = { "b" = ":sh kittyx-git-blame %{buffer_name} %{cursor_line}", "f" = ":sh kittyx-tab git-file %{buffer_name}", "l" = ":sh kittyx-tab git-log", "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}", "g" = ":sh kittyx-tab git" }
+
+# File browser with automatic file opening
+e = ":open %sh{kittyx-tab tree '%{buffer_name}'}"
+
+
+# Text replacement
 R = [ ":write-all", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
 r = [ ":write-all", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
 
+# Buffer operations
+b = { "d" = ":buffer-close", "f" = "buffer_picker" }
+
 [keys.select.space]
-"/" = ":pipe kittyx-live-grep-tab"
+# Live grep with selected text as query  
+"/" = [":pipe tee /tmp/kittyx-live-grep-query", ":open %sh{kittyx-live-grep-tab}"]
+
+# Text replacement with selection
 r = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
 R = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
 ```

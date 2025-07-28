@@ -17,11 +17,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Check if there's stdin (selection text)
-if [[ ! -t 0 ]]; then
-  RAW_INPUT=$(cat)
-  QUERY=$(echo "$RAW_INPUT" | tr -d '\n')  # Just remove newlines
-  echo -n "$QUERY"  # Echo the selection immediately without newline
+# Check if there's a query file
+if [[ -f /tmp/kittyx-live-grep-query ]]; then
+  QUERY=$(cat /tmp/kittyx-live-grep-query | tr -d '\n')  # Just remove newlines
 fi
 
 # Build kittyx-live-grep command
@@ -45,9 +43,16 @@ if [[ -n "$FILEPATH" ]]; then
   LIVE_GREP_CMD="$LIVE_GREP_CMD --search-dir \"$WORK_DIR\" --quit-yazi"
 fi
 
+# Launch the tab and wait for it to exit
 kitty @ launch \
   --type=tab \
   --title="live-grep" \
   --cwd=current \
-  -- bash -c "$LIVE_GREP_CMD" >/dev/null 2>&1
+  --wait-for-child-to-exit \
+  -- bash -c "$LIVE_GREP_CMD"  >/dev/null 2>&1
+
+# After the window is closed, output the result if it exists
+if [[ -f /tmp/live-grep-result ]]; then
+  cat /tmp/live-grep-result
+fi
 

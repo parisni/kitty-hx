@@ -31,8 +31,19 @@ else
   TITLE="$SCRIPT_NAME"
 fi
 
+# Clean up any previous result file
+RESULT_FILE="/tmp/kittyx-$SCRIPT_NAME-result"
+rm -f "$RESULT_FILE"
+
 kitty @ launch \
   --type=tab \
   --title="$TITLE" \
   --cwd=current \
+  --wait-for-child-to-exit \
   -- bash -c "$TARGET_SCRIPT $(printf '%q ' "$@")" >/dev/null 2>&1
+
+# After the tab closes, output the result if it exists  
+RESULT_FILE="/tmp/kittyx-$SCRIPT_NAME-result"
+if [[ -f "$RESULT_FILE" ]]; then
+  cat "$RESULT_FILE"
+fi

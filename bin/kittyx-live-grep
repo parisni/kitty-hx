@@ -3,6 +3,9 @@ set -eo pipefail
 
 export SHELL="$(command -v bash)"
 
+# Clean up any previous results
+rm -f /tmp/live-grep-result /tmp/kittyx-live-grep-query /tmp/kittyx-tree-result
+
 # Colors
 CATPPUCCIN_GREEN='#a6da95'
 CATPPUCCIN_MAUVE='#c6a0f6'
@@ -54,7 +57,6 @@ IFS=$'\n' readarray -t selected_matches < <(
       --color "hl+:$CATPPUCCIN_GREEN:reverse,hl:$CATPPUCCIN_MAUVE:reverse" \
       --delimiter ':' \
       --height '100%' \
-      --multi \
       --exact \
       --print-query \
       --preview 'bash -c "L={2}; batcat {1} --theme=\"Solarized (light)\" --color=always --plain --highlight-line \$L --line-range \$((L>10 ? L-10 : 1)):"' \
@@ -65,48 +67,46 @@ IFS=$'\n' readarray -t selected_matches < <(
       ${INITIAL_QUERY:+--query "$INITIAL_QUERY"}
 )
 
-# Extract file paths and line numbers
-file_paths=()
-for line in "${selected_matches[@]:1}"; do
-  file=$(echo "$line" | cut -d: -f1)
-  line_number=$(echo "$line" | cut -d: -f2)
-  file_paths+=("$file:$line_number")
-done
+# Extract the single selected file path and line number
+if [[ ${#selected_matches[@]} -gt 1 ]]; then
+  selected_line="${selected_matches[1]}"
+  file=$(echo "$selected_line" | cut -d: -f1)
+  line_number=$(echo "$selected_line" | cut -d: -f2)
+  file_path="$file:$line_number"
+  
+  # Print the file path (for backward compatibility)
+  echo "$file_path"
+else
+  file_path=""
+fi
 
-# If --open-in-helix flag is set, open files in helix
-if [[ "$OPEN_IN_HELIX" == true && ${#file_paths[@]} -gt 0 ]]; then
-  # Get the current focused OS window ID
-  CURRENT_WIN_ID=$(kitty @ ls | jq -r '.[] | select(.is_focused == true) | .id')
+# If --open-in-helix flag is set, write selected file to result file and handle yazi
+if [[ "$OPEN_IN_HELIX" == true && -n "$file_path" ]]; then
+  # Choose result file path based on whether we're called from yazi
+  if [[ "$QUIT_YAZI" == true ]]; then
+    # When called from yazi, use tree result path for consistency
+    echo "$file_path" > /tmp/kittyx-tree-result
+  else
+    # When called standalone, use live-grep result path
+    echo "$file_path" > /tmp/live-grep-result
+  fi
   
-  # Get the helix tab's window ID from the current window only
-  HELIX_WINDOW_ID=$(kitty @ ls | jq -r --arg win "$CURRENT_WIN_ID" '
-    .[] 
-    | select(.id == ($win | tonumber))
-    | .tabs[]
-    | .windows[]
-    | select(.foreground_processes[]?.cmdline[0] == "hx")
-    | .id' | head -1)
-  
-  if [[ -n "$HELIX_WINDOW_ID" ]]; then
-    # Join file paths with spaces for helix command
-    FILE_PATHS_STR=$(printf '%s ' "${file_paths[@]}" | sed 's/ *$//')
-    # Send all commands in one go: enter command mode, open files, execute
-    kitty @ send-text --match id:"$HELIX_WINDOW_ID" ":open $FILE_PATHS_STR"$'\r'
+  # If --quit-yazi flag is set, quit yazi
+  if [[ "$QUIT_YAZI" == true ]]; then
+    # Get the current focused OS window ID
+    CURRENT_WIN_ID=$(kitty @ ls | jq -r '.[] | select(.is_focused == true) | .id')
     
-    # If --quit-yazi flag is set, quit yazi
-    if [[ "$QUIT_YAZI" == true ]]; then
-      # Find the yazi tab and send quit command (look for tabs starting with "tree")
-      YAZI_WINDOW_ID=$(kitty @ ls | jq -r --arg win "$CURRENT_WIN_ID" '
-        .[] 
-        | select(.id == ($win | tonumber))
-        | .tabs[]
-        | select(.title | startswith("tree"))
-        | .windows[0]
-        | .id')
-      
-      if [[ -n "$YAZI_WINDOW_ID" ]]; then
-        kitty @ send-text --match id:"$YAZI_WINDOW_ID" 'q'
-      fi
+    # Find the yazi tab and send quit command (look for tabs starting with "tree")
+    YAZI_WINDOW_ID=$(kitty @ ls | jq -r --arg win "$CURRENT_WIN_ID" '
+      .[] 
+      | select(.id == ($win | tonumber))
+      | .tabs[]
+      | select(.title | startswith("tree"))
+      | .windows[0]
+      | .id')
+    
+    if [[ -n "$YAZI_WINDOW_ID" ]]; then
+      kitty @ send-text --match id:"$YAZI_WINDOW_ID" 'q'
     fi
   fi
 fi
