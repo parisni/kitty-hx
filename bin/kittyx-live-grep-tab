@@ -1,46 +1,53 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-export SHELL="$(command -v bash)"
+# Parse arguments
+FILEPATH=""
+QUERY=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --filepath)
+      FILEPATH="$2"
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
 
 # Check if there's stdin (selection text)
-QUERY=""
 if [[ ! -t 0 ]]; then
   RAW_INPUT=$(cat)
-  echo "$RAW_INPUT" > /tmp/stdin_debug.txt
   QUERY=$(echo "$RAW_INPUT" | tr -d '\n')  # Just remove newlines
   echo -n "$QUERY"  # Echo the selection immediately without newline
+fi
+
+# Build kittyx-live-grep command
+LIVE_GREP_CMD="kittyx-live-grep --exit-on-execution --open-in-helix"
+
+# Add query if provided
+if [[ -n "$QUERY" ]]; then
+  LIVE_GREP_CMD="$LIVE_GREP_CMD --query \"$QUERY\""
+fi
+
+# Add search directory if filepath provided
+if [[ -n "$FILEPATH" ]]; then
+  if [[ -f "$FILEPATH" ]]; then
+    WORK_DIR="$(dirname "$FILEPATH")"
+  elif [[ -d "$FILEPATH" ]]; then
+    WORK_DIR="$FILEPATH"
+  else
+    echo "Error: File path '$FILEPATH' does not exist."
+    exit 1
+  fi
+  LIVE_GREP_CMD="$LIVE_GREP_CMD --search-dir \"$WORK_DIR\" --quit-yazi"
 fi
 
 kitty @ launch \
   --type=tab \
   --title="live-grep" \
   --cwd=current \
-  -- bash -c "
-    # Run interactive search with optional query
-    if [[ -n \"$QUERY\" ]]; then
-      FILE_PATHS=\$(kittyx-live-grep --exit-on-execution --query \"$QUERY\" | tr '\n' ' ' | sed 's/ *\$//')
-    else
-      FILE_PATHS=\$(kittyx-live-grep --exit-on-execution | tr '\n' ' ' | sed 's/ *\$//')
-    fi
-
-    # Get the first tab's active window ID in the current active OS window
-    HELIX_WINDOW_ID=\$(kitty @ ls | jq -r '
-      .[] 
-      | select(.is_active==true)
-      | .tabs[0].windows[]
-      | select(.is_focused==true) 
-      | .id')
-
-    if [[ -n \"\$FILE_PATHS\" && -n \"\$HELIX_WINDOW_ID\" ]]; then
-      # Activate Helix's command mode by sending ':'
-      kitty @ send-text --match id:\"\$HELIX_WINDOW_ID\" ':'
-
-      # Send the \"open\" command with selected file paths.
-      kitty @ send-text --match id:\"\$HELIX_WINDOW_ID\" \"open \$FILE_PATHS\"
-
-      # Execute the command by sending Enter.
-      kitty @ send-text --match id:\"\$HELIX_WINDOW_ID\" '\r\n'
-    fi
-  " >/dev/null 2>&1
+  -- bash -c "$LIVE_GREP_CMD" >/dev/null 2>&1
 

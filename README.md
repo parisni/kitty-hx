@@ -14,6 +14,7 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 | `space-g-o` | Normal | Open Git URL in browser (cursor line) | `kittyx-git-url-open` |
 | `space-/` | Normal | Live grep search in new tab | `kittyx-live-grep-tab` |
 | `space-/` | Select | Live grep with selected text as query | `kittyx-live-grep-tab` (piped) |
+| `space-e` | Normal | File browser (yazi) in new tab | `kittyx-tab tree` |
 | `space-r` | Normal | Replace in current file | `kittyx-replace` |
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
@@ -47,6 +48,13 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - Selection mode prepopulates search query
 - Automatic Helix integration for opening results
 - Rich syntax highlighting in preview
+
+### File Browser (Yazi Integration)
+- **Interactive file browser**: Full-featured yazi file manager in dedicated tab
+- **Smart directory detection**: Opens from current buffer's directory or specified path
+- **Seamless Helix integration**: Selected files automatically open in Helix
+- **Live grep integration**: Press `Shift+Ctrl+F` in yazi to search within the current directory
+- **Auto-cleanup**: Yazi tab automatically closes after file selection
 
 ### Git URL Generation
 - Context-aware URL generation for multiple platforms
@@ -87,6 +95,7 @@ Add the following key mappings to your Helix configuration file (`~/.config/heli
 ```toml
 [keys.normal.space]
 "/" = ":sh kittyx-live-grep-tab"
+e = ":sh kittyx-tab tree '%{buffer_name}'"
 g = { "b" = ":sh kittyx-git-blame %{buffer_name} %{cursor_line}", "f" = ":sh kittyx-tab git-file %{buffer_name}", "l" = ":sh kittyx-tab git-log", "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}", "g" = ":sh kittyx-tab git" }
 R = [ ":write-all", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
 r = [ ":write-all", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
@@ -106,6 +115,22 @@ Add the following to your Kitty configuration file (`~/.config/kitty/kitty.conf`
 map ctrl+space launch --type=overlay --title=current --stdin-source=@screen_scrollback kittyx-scrollback
 map alt+space launch --type=overlay --title=current --stdin-source=@last_cmd_output kittyx-scrollback
 ```
+
+### Yazi Configuration
+
+For enhanced yazi integration, add the following to your yazi keymap configuration file (`~/.config/yazi/keymap.toml`):
+
+```toml
+[[manager.prepend_keymap]]
+on   = "<S-C-f>"
+run  = 'shell -- kittyx-live-grep-tab --filepath "$@"'
+desc = "Live grep on the given folder"
+```
+
+This enables:
+- **`Shift+Ctrl+F` in yazi**: Launch live grep search in the current directory
+- **Automatic integration**: Search results open directly in Helix
+- **Smart cleanup**: Yazi automatically closes after file selection
 
 ## Supported Git Platforms
 

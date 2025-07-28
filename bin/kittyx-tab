@@ -35,4 +35,4 @@ kitty @ launch \
   --type=tab \
   --title="$TITLE" \
   --cwd=current \
-  -- bash -c "$TARGET_SCRIPT $(printf '%q ' "$@")"
+  -- bash -c "$TARGET_SCRIPT $(printf '%q ' "$@")" >/dev/null 2>&1

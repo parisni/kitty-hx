@@ -26,13 +26,7 @@ kitty @ launch \
       | .id')
 
     if [[ -n \"\$FILE_PATHS\" && -n \"\$HELIX_WINDOW_ID\" ]]; then
-      # Activate Helix's command mode by sending ':'
-      kitty @ send-text --match id:\"\$HELIX_WINDOW_ID\" ':'
-
-      # Send the \"open\" command with selected file paths.
-      kitty @ send-text --match id:\"\$HELIX_WINDOW_ID\" \"open \$FILE_PATHS\"
-
-      # Execute the command by sending Enter.
-      kitty @ send-text --match id:\"\$HELIX_WINDOW_ID\" '\r\n'
+      # Send all commands in one go: enter command mode, open files, execute
+      kitty @ send-text --match id:\"\$HELIX_WINDOW_ID\" \":open \$FILE_PATHS\"\$'\r'
     fi
   " >/dev/null 2>&1
