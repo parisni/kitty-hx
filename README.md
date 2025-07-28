@@ -1,6 +1,8 @@
 # kittyx
 
-Advanced Git integration and search utilities for Helix editor with Kitty terminal integration.
+Seamless workflow integration for Helix editor: Git operations, live search, file browsing, and text replacement with automatic file opening via Kitty terminal tabs.
+
+Helix's design philosophy embraces simplicity without plugins, following Unix principles of composing specialized tools. Rather than constraining functionality within Helix's limited buffer system and shared keybindings, this project leverages Kitty terminal's powerful windowing to integrate best-in-class tools like ripgrep, fzf, yazi, and lazygit. Each tool excels in its domain, providing capabilities no plugin could match while maintaining clean separation of concerns.
 
 ## Features
 
