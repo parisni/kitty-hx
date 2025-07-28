@@ -19,8 +19,6 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
 | `space-R` | Select | Replace selected text across project | `kittyx-replace` |
-| `space-b-d` | Normal | Close current buffer | Built-in |
-| `space-b-f` | Normal | Buffer picker | Built-in |
 | `ctrl-space` | Kitty | View scrollback buffer in Helix overlay | `kittyx-scrollback` |
 | `alt-space` | Kitty | View last command output in Helix overlay | `kittyx-scrollback` |
 
@@ -32,12 +30,6 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - **Platform-specific patterns**: Recognizes different PR formats (`#123` for GitHub, `!123` for GitLab, Change-Id for Gerrit)
 - **Rich output**: Shows author, time since commit, commit message, and clickable URL
 - **URL-only mode**: `--url-only` flag for integration with other tools
-
-### Git File Browser
-- Interactive commit history browser with fzf
-- Preview commit details and changes
-- Direct PR/commit URL opening with `ctrl-o`
-- Launches in dedicated Kitty tab
 
 ### Git Browser Integration
 - **Lazygit integration**: Full-featured git interface in dedicated tab
@@ -59,13 +51,7 @@ Advanced Git integration and search utilities for Helix editor with Kitty termin
 - **Live grep integration**: Press `Shift+Ctrl+F` in yazi to search within the current directory
 - **Unified workflow**: Both yazi selection and live-grep from yazi work seamlessly together
 
-### Git URL Generation
-- Context-aware URL generation for multiple platforms
-- Direct browser opening or clipboard copying
-- Supports current cursor line positioning
-- Works with files and line numbers
-
-### Text Replacement
+### Text Replacement (Scooter Integration)
 - **File-scoped replacement**: Replace in current file with interactive preview
 - **Project-wide replacement**: Replace across entire project with scooter integration
 - **Selection-aware**: Works with selected text in Helix
@@ -111,9 +97,6 @@ e = ":open %sh{kittyx-tab tree '%{buffer_name}'}"
 R = [ ":write-all", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
 r = [ ":write-all", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
 
-# Buffer operations
-b = { "d" = ":buffer-close", "f" = "buffer_picker" }
-
 [keys.select.space]
 # Live grep with selected text as query  
 "/" = [":pipe tee /tmp/kittyx-live-grep-query", ":open %sh{kittyx-live-grep-tab}"]
@@ -149,21 +132,6 @@ This enables:
 - **Automatic integration**: Search results open directly in Helix
 - **Smart cleanup**: Yazi automatically closes after file selection
 
-## Supported Git Platforms
-
-### Git Blame PR/Commit URL Support
-- **GitHub**: Detects `#123`, `(#123)`, `Merge pull request #123` patterns → `/pull/123`
-- **GitLab**: Detects `!123`, `See merge request !123` patterns → `/-/merge_requests/123`
-- **Bitbucket**: Detects `#123` patterns → `/pull-requests/123`
-- **Azure DevOps**: Detects `Merged PR 123`, `Pull request #123` patterns → `/pullrequest/123`
-- **Gerrit**: Detects `Change-Id: I...` patterns → `/q/Change-Id` (redirects to actual review)
-
-### Git URL Generation (file URLs)
-- **GitHub**: `#L42` (line anchors)
-- **GitLab**: `#L42` (line anchors)  
-- **Bitbucket**: `#lines-42` (line anchors)
-- **Gerrit**: Gitiles format with line anchors
-
 ## Requirements
 - [Helix Editor](https://helix-editor.com/)
 - [Kitty Terminal](https://sw.kovidgoyal.net/kitty/)
@@ -171,3 +139,6 @@ This enables:
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
 - [bat](https://github.com/sharkdp/bat) (for syntax highlighting in preview)
 - [jq](https://github.com/jqlang/jq) (for JSON processing)
+- [lazygit](https://github.com/jesseduffield/lazygit)
+- [scooter](https://github.com/thomasschafer/scooter)
+- [yazi](https://github.com/sxyazi/yazi)
