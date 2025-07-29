@@ -47,6 +47,36 @@ fi
 # Create custom config by copying default and adding q mapping
 if [[ -f ~/.config/helix/config.toml ]]; then
     cp ~/.config/helix/config.toml "$configfile"
+    
+    # Add editor configuration for clean scrollback viewing
+    if rg -q '^\[editor\]' "$configfile"; then
+        # Replace existing gutters setting or add if not present
+        if rg -q '^gutters\s*=' "$configfile"; then
+            sed -i 's/^gutters\s*=.*/gutters = []/' "$configfile"
+        else
+            sed -i '/^\[editor\]/a gutters = []' "$configfile"
+        fi
+    else
+        # Create new [editor] section
+        echo "" >> "$configfile"
+        echo "[editor]" >> "$configfile"
+        echo 'gutters = []' >> "$configfile"
+    fi
+    
+    # Add indent-guides configuration
+    if rg -q '^\[editor\.indent-guides\]' "$configfile"; then
+        # Replace existing render setting or add if not present
+        if rg -q '^render\s*=' "$configfile"; then
+            sed -i 's/^render\s*=.*/render = false/' "$configfile"
+        else
+            sed -i '/^\[editor\.indent-guides\]/a render = false' "$configfile"
+        fi
+    else
+        echo "" >> "$configfile"
+        echo "[editor.indent-guides]" >> "$configfile"
+        echo 'render = false' >> "$configfile"
+    fi
+    
     # Check if [keys.normal] section exists
     if rg -q '^\[keys\.normal\]' "$configfile"; then
         # Add q mapping after existing [keys.normal] section
@@ -72,6 +102,12 @@ if [[ -f ~/.config/helix/config.toml ]]; then
 else
     # If no default config, create minimal one
     cat > "$configfile" <<EOF
+[editor]
+gutters = []
+
+[editor.indent-guides]
+render = false
+
 [keys.normal]
 q = ":quit!"
 
