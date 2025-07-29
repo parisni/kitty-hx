@@ -2,7 +2,7 @@
 
 Seamless workflow integration for Helix editor: Git operations, live search, file browsing, and text replacement with automatic file opening via Kitty terminal tabs.
 
-Helix's design philosophy embraces simplicity without plugins, following Unix principles of composing specialized tools. Rather than constraining functionality within Helix's limited buffer system and shared keybindings, this project leverages Kitty terminal's powerful windowing to integrate best-in-class tools like ripgrep, fzf, yazi, and lazygit. Each tool excels in its domain, providing capabilities no plugin could match while maintaining clean separation of concerns.
+Helix's design philosophy embraces simplicity without plugins, following Unix principles of composing specialized tools. Rather than constraining functionality within Helix's limited buffer system, this project leverages Kitty terminal's powerful windowing to integrate best-in-class tools like fzf, yazi, scooter or lazygit. Each tool excels in its domain, providing capabilities no plugin could match.
 
 ## Features
 
@@ -14,14 +14,14 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 | `space-g-l` | Normal | Interactive git log browser | `kittyx-tab git-log` |
 | `space-g-u` | Normal | Copy Git URL to clipboard (cursor line) | `kittyx-git-url-copy` |
 | `space-g-o` | Normal | Open Git URL in browser (cursor line) | `kittyx-git-url-open` |
+| `space-e` | Normal | File browser (yazi) - manipulate selected file | `kittyx-tab tree` |
 | `space-/` | Normal | Live grep search - opens selected file | `kittyx-live-grep-tab` |
 | `space-/` | Select | Live grep with selected text as query - opens selected file | `kittyx-live-grep-tab` |
-| `space-e` | Normal | File browser (yazi) - opens selected file | `kittyx-tab tree` |
+| `C-S-f` | Tree | Live grep within selected folder - opens selected file | `kittyx-live-grep-tab` |
 | `space-r` | Normal | Replace in current file | `kittyx-replace` |
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
 | `space-R` | Select | Replace selected text across project | `kittyx-replace` |
-| `space-c-p` | Normal | Markdown preview in browser with live reload | `kittyx-md-preview` |
 | `ctrl-space` | Kitty | View scrollback buffer in Helix overlay | `kittyx-scrollback` |
 | `alt-space` | Kitty | View last command output in Helix overlay | `kittyx-scrollback` |
 
@@ -39,13 +39,6 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 - **Git log browser**: Interactive commit history with fzf
 - **Modified files browser**: Interactive browser for git status files
 
-### Live Grep Search
-- Interactive ripgrep with fzf interface in dedicated tab
-- Copy file:line references with `ctrl-y`
-- Selection mode prepopulates search query
-- **Seamless file opening**: Selected files automatically open in Helix after tab closes
-- Rich syntax highlighting in preview
-- Single file selection only (no multi-select)
 
 ### File Browser (Yazi Integration)
 - **Interactive file browser**: Full-featured yazi file manager in dedicated tab
@@ -54,10 +47,30 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 - **Live grep integration**: Press `Shift+Ctrl+F` in yazi to search within the current directory
 - **Unified workflow**: Both yazi selection and live-grep from yazi work seamlessly together
 
+![](https://github.com/user-attachments/assets/1f1ca9cf-cce1-420c-960e-1a383e7cc341)
+
+### Live Grep Search
+- Interactive ripgrep with fzf interface in dedicated tab
+- Copy file:line references with `ctrl-y`
+- Selection mode prepopulates search query
+- **Seamless file opening**: Selected files automatically open in Helix after tab closes
+- Rich syntax highlighting in preview
+- Single file selection only (no multi-select)
+
+![](https://github.com/user-attachments/assets/2e894dad-2d8a-4973-a833-ae020e7bafd5)
+
 ### Text Replacement (Scooter Integration)
 - **File-scoped replacement**: Replace in current file with interactive preview
 - **Project-wide replacement**: Replace across entire project with scooter integration
 - **Selection-aware**: Works with selected text in Helix
+
+### Scrollback Viewer
+- **Terminal scrollback integration**: View terminal scrollback buffer in Helix overlay
+- **Command output viewer**: View last command output in Helix overlay  
+- **Smart cursor positioning**: Positions at cursor location for vim/less windows, jumps to end for other content
+- **Custom keybindings**: Inherits your Helix config with added `q` key for force quit
+- **Fast temporary files**: Uses `/dev/shm` for optimal performance
+
 
 ### Markdown Preview
 - **Live preview**: Converts markdown to HTML with automatic browser opening
@@ -66,12 +79,7 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 - **Live reload**: Uses live-server for automatic refresh on changes
 - **Pandoc integration**: Full-featured markdown conversion with self-contained HTML
 
-### Scrollback Viewer
-- **Terminal scrollback integration**: View terminal scrollback buffer in Helix overlay
-- **Command output viewer**: View last command output in Helix overlay  
-- **Smart cursor positioning**: Positions at cursor location for vim/less windows, jumps to end for other content
-- **Custom keybindings**: Inherits your Helix config with added `q` key for force quit
-- **Fast temporary files**: Uses `/dev/shm` for optimal performance
+![](https://github.com/user-attachments/assets/12467ce3-d1be-4346-b084-5a60651699f5)
 
 ## Installation
 
@@ -102,8 +110,6 @@ g = { "b" = ":sh kittyx-git-blame %{buffer_name} %{cursor_line}", "f" = ":sh kit
 # File browser with automatic file opening
 e = ":open %sh{kittyx-tab tree '%{buffer_name}'}"
 
-# Markdown preview
-c = { p = ":sh kittyx-md-preview %{buffer_name}" }
 
 # Text replacement
 R = [ ":write-all", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
@@ -140,6 +146,7 @@ desc = "Live grep on the given folder"
 ```
 
 This enables:
+
 - **`Shift+Ctrl+F` in yazi**: Launch live grep search in the current directory
 - **Automatic integration**: Search results open directly in Helix
 - **Smart cleanup**: Yazi automatically closes after file selection
@@ -154,5 +161,3 @@ This enables:
 - [lazygit](https://github.com/jesseduffield/lazygit)
 - [scooter](https://github.com/thomasschafer/scooter)
 - [yazi](https://github.com/sxyazi/yazi)
-- [pandoc](https://pandoc.org/) (for markdown preview)
-- [live-server](https://www.npmjs.com/package/live-server) (for markdown preview)
