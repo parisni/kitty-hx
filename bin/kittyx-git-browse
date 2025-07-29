@@ -14,6 +14,10 @@ while [[ $# -gt 0 ]]; do
       lazygit branch
       exit 0
       ;;
+    --status)
+      lazygit status
+      exit 0
+      ;;
     --file)
       shift
       FILE="$1"
@@ -32,7 +36,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--branch | --file <file> | --log]"
+      echo "Usage: $0 [--branch | --file <file> | --log | --status]"
       exit 1
       ;;
   esac
