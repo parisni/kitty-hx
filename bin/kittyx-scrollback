@@ -61,6 +61,9 @@ if [[ -f ~/.config/helix/config.toml ]]; then
         else
             sed -i '/^\[editor\]/a gutters = []' "$configfile"
         fi
+        
+        # Remove any soft-wrap setting to disable wrapping
+        sed -i '/^soft-wrap\s*=/d' "$configfile"
     else
         # Create new [editor] section
         echo "" >> "$configfile"
