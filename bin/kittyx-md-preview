@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
+
+# ---------- Input ----------
+INPUT="$1"
+
+if [[ -z "$INPUT" || ! -f "$INPUT" ]]; then
+  echo "❌ Error: No valid file passed." >&2
+  exit 1
+fi
+
+# ---------- Setup ----------
+DIR="$(dirname "$INPUT")"
+NAME="$(basename "$INPUT" .md)"
+PREVIEW_DIR="/tmp/kittyx-md-preview-${NAME}"
+HTML_FILE="$PREVIEW_DIR/${NAME}.preview.html"
+URL="http://127.0.0.1:53921/${NAME}.preview.html"
+
+# Create unique preview directory
+mkdir -p "$PREVIEW_DIR"
+
+# ---------- Convert Markdown ----------
+cd "$DIR" || exit 1
+pandoc "$(basename "$INPUT")" -f markdown -t html5 --self-contained -s \
+  --css=https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css \
+  --include-before-body=<(echo '<div class="markdown-body">') \
+  --include-after-body=<(echo '</div>') \
+  --include-in-header=<(echo '<style>
+  body {
+    background-color: #fff;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .markdown-body {
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .markdown-body img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .markdown-body table {
+    display: block;
+    width: 100%;
+    overflow: auto;
+  }
+</style>') \
+  -o "$HTML_FILE" 2>/dev/null
+if [[ $? -ne 0 ]]; then
+  echo "❌ Error: pandoc failed." >&2
+  exit 1
+fi
+
+# ---------- Start live-server ----------
+LIVE_PID=$(pgrep live-server || true)
+
+if [[ -z "$LIVE_PID" ]]; then
+  echo "🚀 Starting live-server in $PREVIEW_DIR..."
+  cd "$PREVIEW_DIR" || exit 1
+  live-server --port=53921 --quiet --no-browser &
+  sleep 1  # give server a moment to start
+else
+  echo "🔄 live-server already running (PID: $LIVE_PID)"
+fi
+
+# ---------- Open in browser ----------
+echo "🌐 Opening: $URL"
+if command -v xdg-open &>/dev/null; then
+  xdg-open "$URL"
+elif command -v open &>/dev/null; then  # macOS
+  open "$URL"
+elif command -v start &>/dev/null; then  # Windows (Git Bash / WSL)
+  start "$URL"
+else
+  echo "⚠️ Could not detect browser launcher (xdg-open/open/start)."
+fi

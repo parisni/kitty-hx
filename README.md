@@ -21,6 +21,7 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
 | `space-R` | Select | Replace selected text across project | `kittyx-replace` |
+| `space-c-p` | Normal | Markdown preview in browser with live reload | `kittyx-md-preview` |
 | `ctrl-space` | Kitty | View scrollback buffer in Helix overlay | `kittyx-scrollback` |
 | `alt-space` | Kitty | View last command output in Helix overlay | `kittyx-scrollback` |
 
@@ -58,6 +59,13 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 - **Project-wide replacement**: Replace across entire project with scooter integration
 - **Selection-aware**: Works with selected text in Helix
 
+### Markdown Preview
+- **Live preview**: Converts markdown to HTML with automatic browser opening
+- **GitHub styling**: Uses GitHub markdown CSS for consistent appearance
+- **Isolated serving**: Each markdown file gets its own preview directory
+- **Live reload**: Uses live-server for automatic refresh on changes
+- **Pandoc integration**: Full-featured markdown conversion with self-contained HTML
+
 ### Scrollback Viewer
 - **Terminal scrollback integration**: View terminal scrollback buffer in Helix overlay
 - **Command output viewer**: View last command output in Helix overlay  
@@ -94,6 +102,8 @@ g = { "b" = ":sh kittyx-git-blame %{buffer_name} %{cursor_line}", "f" = ":sh kit
 # File browser with automatic file opening
 e = ":open %sh{kittyx-tab tree '%{buffer_name}'}"
 
+# Markdown preview
+c = { p = ":sh kittyx-md-preview %{buffer_name}" }
 
 # Text replacement
 R = [ ":write-all", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
@@ -144,3 +154,5 @@ This enables:
 - [lazygit](https://github.com/jesseduffield/lazygit)
 - [scooter](https://github.com/thomasschafer/scooter)
 - [yazi](https://github.com/sxyazi/yazi)
+- [pandoc](https://pandoc.org/) (for markdown preview)
+- [live-server](https://www.npmjs.com/package/live-server) (for markdown preview)
