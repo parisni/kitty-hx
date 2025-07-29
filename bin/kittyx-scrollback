@@ -53,9 +53,9 @@ if [[ -n "$KITTY_PIPE_DATA" ]]; then
                 # Inside editor: use cursor position directly
                 calculated_line=$cursor_y
             else
-                # Regular terminal: use complex calculation accounting for helix UI
-                helix_center_offset=$((screen_rows / 2 - 2))
-                calculated_line=$((total_lines - scrolled_by - screen_rows + cursor_y - helix_center_offset))
+                # Regular terminal: center the target line in helix viewport
+                # Simplified: total_lines - scrolled_by - screen_rows + cursor_y + 2
+                calculated_line=$((total_lines - scrolled_by - screen_rows + cursor_y + 2))
             fi
             
             # Ensure line number is never less than 1
