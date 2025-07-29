@@ -17,31 +17,36 @@ trap cleanup EXIT
 # Read stdin to temporary file
 cat > "$tmpfile"
 
-# Default position
+# Default position and flag to track if we got cursor data
 line_num=1
+has_cursor_data=false
 
 # Parse KITTY_PIPE_DATA if available
 if [[ -n "$KITTY_PIPE_DATA" ]]; then
     IFS=':' read -r scrolled_by coords linecol <<< "$KITTY_PIPE_DATA"
     
-    if [[ -n "$coords" ]]; then
+    if [[ -n "$coords" && -n "$scrolled_by" ]]; then
         IFS=',' read -r cursor_x cursor_y <<< "$coords"
-        line_num="${cursor_y:-1}"
+        IFS=',' read -r screen_rows screen_cols <<< "$linecol"
+        
+        if [[ -n "$cursor_y" && "$scrolled_by" =~ ^[0-9]+$ && "$cursor_y" =~ ^[0-9]+$ && -n "$screen_rows" ]]; then
+            # Get total lines in the scrollback content
+            total_lines=$(wc -l < "$tmpfile")
+            
+            # Calculate position accounting for helix status bar offset
+            helix_center_offset=$((screen_rows / 2 - 2))
+            line_num=$((total_lines - scrolled_by - screen_rows + cursor_y - helix_center_offset))
+            has_cursor_data=true
+        fi
     fi
 fi
 
-# Get window title to determine behavior
+# Use cursor position if available, otherwise fallback to last non-empty line
 target_line="$line_num"
-if [[ -n "$KITTY_WINDOW_ID" ]]; then
-    title=$(kitty @ ls | jq -r ".[] | .tabs[].windows[] | select(.id == $KITTY_WINDOW_ID) | .title" 2>/dev/null || echo "")
-    
-    # If not vim/less, jump to last non-empty line
-    if [[ ! "$title" =~ (vim|less) ]]; then
-        # Use rg to find last non-empty line number
-        last_line=$(rg -n '\S' "$tmpfile" | tail -1 | cut -d: -f1)
-        last_line=${last_line:-1}
-        target_line="$last_line"
-    fi
+if [[ "$has_cursor_data" == false ]]; then
+    # No cursor position available, use last non-empty line as fallback
+    last_line=$(rg -n '\S' "$tmpfile" | tail -1 | cut -d: -f1)
+    target_line="${last_line:-1}"
 fi
 
 # Create custom config by copying default and adding q mapping
