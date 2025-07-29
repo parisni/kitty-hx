@@ -30,17 +30,15 @@ if [[ -n "$QUERY" ]]; then
   LIVE_GREP_CMD="$LIVE_GREP_CMD --query \"$QUERY\""
 fi
 
-# Add search directory if filepath provided
+# Add search path if filepath provided
 if [[ -n "$FILEPATH" ]]; then
-  if [[ -f "$FILEPATH" ]]; then
-    WORK_DIR="$(dirname "$FILEPATH")"
-  elif [[ -d "$FILEPATH" ]]; then
-    WORK_DIR="$FILEPATH"
+  if [[ -f "$FILEPATH" || -d "$FILEPATH" ]]; then
+    # Works for both files and directories
+    LIVE_GREP_CMD="$LIVE_GREP_CMD --search-path \"$FILEPATH\" --quit-yazi"
   else
     echo "Error: File path '$FILEPATH' does not exist."
     exit 1
   fi
-  LIVE_GREP_CMD="$LIVE_GREP_CMD --search-dir \"$WORK_DIR\" --quit-yazi"
 fi
 
 # Launch the tab and wait for it to exit

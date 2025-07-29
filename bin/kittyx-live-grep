@@ -17,7 +17,7 @@ KEYS="$COPY_FILE_PATH"
 # Parse arguments
 INITIAL_QUERY=""
 EXIT_ON_EXECUTION=false
-SEARCH_DIR=""
+SEARCH_PATH=""
 OPEN_IN_HELIX=false
 QUIT_YAZI=false
 
@@ -32,8 +32,13 @@ while [[ $# -gt 0 ]]; do
       INITIAL_QUERY="$2"
       shift 2
       ;;
+    --search-path)
+      SEARCH_PATH="$2"
+      shift 2
+      ;;
     --search-dir)
-      SEARCH_DIR="$2"
+      # Backward compatibility
+      SEARCH_PATH="$2"
       shift 2
       ;;
     --open-in-helix)
@@ -51,7 +56,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 IFS=$'\n' readarray -t selected_matches < <(
-  rg --color=always --line-number --no-heading --smart-case "${*:-}" ${SEARCH_DIR:+$SEARCH_DIR} | rg -v '^[^:]*:[^:]*:\s*$' |
+  rg --color=always --line-number --no-heading --smart-case "${*:-}" ${SEARCH_PATH:+$SEARCH_PATH} | rg -v '^[^:]*:[^:]*:\s*$' |
     fzf --ansi \
       --cycle \
       --border \
