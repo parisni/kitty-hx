@@ -21,6 +21,21 @@ cat > "$tmpfile"
 line_num=1
 has_cursor_data=false
 
+# Detect if we're running inside an editor by checking all windows in current tab
+is_editor=false
+if [[ -n "$KITTY_WINDOW_ID" ]]; then
+    # Check all windows in the current tab for editor processes
+    all_tab_processes=$(kitty @ ls | jq -r ".[] | .tabs[] | select(.windows[].id == $KITTY_WINDOW_ID) | .windows[].foreground_processes[]?.cmdline[0]" 2>/dev/null || echo "")
+    
+    # Look for editors/pagers/TUIs in any foreground process in the current tab
+    while IFS= read -r cmd; do
+        if [[ "$cmd" =~ ^(vim|vi|nvim|helix|hx|nano|emacs|less|bat|lazygit|yazi|scooter)$ ]]; then
+            is_editor=true
+            break
+        fi
+    done <<< "$all_tab_processes"
+fi
+
 # Parse KITTY_PIPE_DATA if available
 if [[ -n "$KITTY_PIPE_DATA" ]]; then
     IFS=':' read -r scrolled_by coords linecol <<< "$KITTY_PIPE_DATA"
@@ -33,9 +48,18 @@ if [[ -n "$KITTY_PIPE_DATA" ]]; then
             # Get total lines in the scrollback content
             total_lines=$(wc -l < "$tmpfile")
             
-            # Calculate position accounting for helix status bar offset
-            helix_center_offset=$((screen_rows / 2 - 2))
-            line_num=$((total_lines - scrolled_by - screen_rows + cursor_y - helix_center_offset))
+            # Use different calculation based on whether we're in an editor
+            if [[ "$is_editor" == true ]]; then
+                # Inside editor: use cursor position directly
+                calculated_line=$cursor_y
+            else
+                # Regular terminal: use complex calculation accounting for helix UI
+                helix_center_offset=$((screen_rows / 2 - 2))
+                calculated_line=$((total_lines - scrolled_by - screen_rows + cursor_y - helix_center_offset))
+            fi
+            
+            # Ensure line number is never less than 1
+            line_num=$((calculated_line < 1 ? 1 : calculated_line))
             has_cursor_data=true
         fi
     fi
