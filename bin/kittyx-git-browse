@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+export SHELL="$(command -v bash)"
+
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  echo "Not inside a Git repository."
+  exit 1
+fi
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --branch)
+      lazygit branch
+      exit 0
+      ;;
+    --file)
+      shift
+      FILE="$1"
+      if [[ -z "$FILE" || ! -f "$FILE" ]]; then
+        echo "Error: Must provide a valid file path after --file."
+        exit 1
+      fi
+      cd "$(dirname "$FILE")" || exit 1
+      FILENAME_ONLY="$(basename "$FILE")"
+      lazygit -f "$FILE"
+      exit 0
+      ;;
+    --log)
+      lazygit log --screen-mode=half
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: $0 [--branch | --file <file> | --log]"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+# Default: show status (main lazygit view)
+lazygit
