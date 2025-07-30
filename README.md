@@ -19,6 +19,7 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 | `space-/` | Select | Live grep with selected text as query - opens selected file | `kittyx-tab live-grep` |
 | `C-S-f` | Tree | Live grep within selected folder - opens selected file | `kittyx-tab live-grep` |
 | `C-S-r` | Tree | Replace text within selected folder | `kittyx-tab replace` |
+| `C-S-g` | Tree | Git history for selected file/folder | `kittyx-tab git-browse` |
 | `space-r` | Normal | Replace in current file | `kittyx-replace` |
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
@@ -149,12 +150,18 @@ desc = "Live grep on the given folder"
 on   = "<S-C-r>"
 run  = 'shell -- kittyx-tab replace --quit-tree --filepath "$@"'
 desc = "Replace text in the given folder"
+
+[[manager.prepend_keymap]]
+on   = "<S-C-g>"
+run  = 'shell -- kittyx-tab git-browse --filepath "$@"'
+desc = "Git history for the selected file/folder"
 ```
 
 This enables:
 
 - **`Shift+Ctrl+F` in yazi**: Launch live grep search in the current directory
 - **`Shift+Ctrl+R` in yazi**: Launch text replacement in the current directory
+- **`Shift+Ctrl+G` in yazi**: View git history for the selected file/folder
 - **Automatic integration**: Search results open directly in Helix, replacements work within selected directory
 - **Smart cleanup**: Yazi automatically closes after file selection
 

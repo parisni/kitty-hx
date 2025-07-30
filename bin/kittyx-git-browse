@@ -18,16 +18,26 @@ while [[ $# -gt 0 ]]; do
       lazygit status
       exit 0
       ;;
-    --file)
+    --file|--search-path)
       shift
       FILE="$1"
-      if [[ -z "$FILE" || ! -f "$FILE" ]]; then
-        echo "Error: Must provide a valid file path after --file."
+      if [[ -z "$FILE" ]]; then
+        echo "Error: Must provide a valid file path after $1."
         exit 1
       fi
-      cd "$(dirname "$FILE")" || exit 1
-      FILENAME_ONLY="$(basename "$FILE")"
-      lazygit -f "$FILE"
+      if [[ -f "$FILE" ]]; then
+        # It's a file - use lazygit file mode
+        cd "$(dirname "$FILE")" || exit 1
+        FILENAME_ONLY="$(basename "$FILE")"
+        lazygit -f "$FILE"
+      elif [[ -d "$FILE" ]]; then
+        # It's a directory - show git log for that directory
+        cd "$FILE" || exit 1
+        lazygit log --screen-mode=half
+      else
+        echo "Error: Path '$FILE' does not exist."
+        exit 1
+      fi
       exit 0
       ;;
     --log)
@@ -36,7 +46,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--branch | --file <file> | --log | --status]"
+      echo "Usage: $0 [--branch | --file <file> | --search-path <path> | --log | --status]"
       exit 1
       ;;
   esac
