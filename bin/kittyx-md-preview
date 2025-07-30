@@ -57,17 +57,20 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-# ---------- Start live-server ----------
-LIVE_PID=$(pgrep live-server || true)
+# ---------- Kill existing live-server on port 53921 ----------
+LIVE_PID=$(lsof -ti:53921 || true)
 
-if [[ -z "$LIVE_PID" ]]; then
-  echo "🚀 Starting live-server in $PREVIEW_DIR..."
-  cd "$PREVIEW_DIR" || exit 1
-  live-server --port=53921 --quiet --no-browser &
-  sleep 1  # give server a moment to start
-else
-  echo "🔄 live-server already running (PID: $LIVE_PID)"
+if [[ -n "$LIVE_PID" ]]; then
+  echo "🛑 Killing existing live-server on port 53921 (PID: $LIVE_PID)..."
+  kill "$LIVE_PID" 2>/dev/null || true
+  sleep 1  # give process time to terminate
 fi
+
+# ---------- Start live-server ----------
+echo "🚀 Starting live-server in $PREVIEW_DIR..."
+cd "$PREVIEW_DIR" || exit 1
+live-server --port=53921 --quiet --no-browser &
+sleep 1  # give server a moment to start
 
 # ---------- Open in browser ----------
 echo "🌐 Opening: $URL"
