@@ -29,7 +29,7 @@ if [[ -n "$KITTY_WINDOW_ID" ]]; then
     
     # Look for editors/pagers/TUIs in any foreground process in the current tab
     while IFS= read -r cmd; do
-        if [[ "$cmd" =~ ^(vim|vi|nvim|helix|hx|nano|emacs|less|bat|lazygit|yazi|scooter)$ ]]; then
+        if [[ "$cmd" =~ ^(vim|vi|nvim|helix|hx|nano|emacs|less|bat|lazygit|yazi|scooter|csvlens)$ ]]; then
             is_editor=true
             break
         fi

@@ -21,8 +21,72 @@ if [[ ! -f "$SCRIPT_PATH" ]]; then
   exit 1
 fi
 
-# Shift to remove the script name from arguments
-shift
+# Parse generic arguments that kittyx-tab handles
+FILEPATH=""
+OPEN_IN_HELIX=false
+QUIT_TREE=false
+OTHER_ARGS=()
+
+shift # Remove script name
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --filepath)
+      FILEPATH="$2"
+      shift 2
+      ;;
+    --open-in-helix)
+      OPEN_IN_HELIX=true
+      shift
+      ;;
+    --quit-tree)
+      QUIT_TREE=true
+      shift
+      ;;
+    *)
+      OTHER_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# Check if there's a query file
+QUERY=""
+if [[ -f "/tmp/kittyx-$SCRIPT_NAME-query" ]]; then
+  QUERY=$(cat "/tmp/kittyx-$SCRIPT_NAME-query" | tr -d '\n')
+fi
+
+# Build the command
+TARGET_COMMAND="$TARGET_SCRIPT"
+
+# Add --open-in-helix if requested
+if [[ "$OPEN_IN_HELIX" == true ]]; then
+  TARGET_COMMAND="$TARGET_COMMAND --open-in-helix"
+fi
+
+# Add query if provided
+if [[ -n "$QUERY" ]]; then
+  TARGET_COMMAND="$TARGET_COMMAND --query \"$QUERY\""
+fi
+
+# Add search path if filepath provided
+if [[ -n "$FILEPATH" ]]; then
+  if [[ -f "$FILEPATH" || -d "$FILEPATH" ]]; then
+    TARGET_COMMAND="$TARGET_COMMAND --search-path \"$FILEPATH\""
+  else
+    echo "Error: File path '$FILEPATH' does not exist."
+    exit 1
+  fi
+fi
+
+# Add quit-tree flag if requested
+if [[ "$QUIT_TREE" == true ]]; then
+  TARGET_COMMAND="$TARGET_COMMAND --quit-tree"
+fi
+
+# Add any other arguments
+if [[ ${#OTHER_ARGS[@]} -gt 0 ]]; then
+  TARGET_COMMAND="$TARGET_COMMAND $(printf '%q ' "${OTHER_ARGS[@]}")"
+fi
 
 # Build the title - use script name and show arguments if any
 if [[ $# -gt 0 ]]; then
@@ -40,7 +104,7 @@ kitty @ launch \
   --title="$TITLE" \
   --cwd=current \
   --wait-for-child-to-exit \
-  -- bash -c "$TARGET_SCRIPT $(printf '%q ' "$@")" >/dev/null 2>&1
+  -- bash -c "$TARGET_COMMAND" >/dev/null 2>&1
 
 # After the tab closes, output the result if it exists  
 RESULT_FILE="/tmp/kittyx-$SCRIPT_NAME-result"

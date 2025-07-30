@@ -4,21 +4,53 @@ set -eo pipefail
 export SHELL="$(command -v bash)"
 
 SEL_FILE="/tmp/kittyx-replace.tmp"
+SEARCH_PATH=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --search-path)
+      SEARCH_PATH="$2"
+      shift 2
+      ;;
+    *)
+      # Keep backward compatibility - first non-flag argument is search path
+      if [[ -z "$SEARCH_PATH" ]]; then
+        SEARCH_PATH="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Convert absolute path to relative if needed and add glob for directories
+if [[ -n "$SEARCH_PATH" ]]; then
+  # Convert absolute path to relative if it's absolute
+  if [[ "$SEARCH_PATH" = /* ]]; then
+    RELATIVE_PATH=$(realpath --relative-to="$(pwd)" "$SEARCH_PATH" 2>/dev/null || echo "$SEARCH_PATH")
+    SEARCH_PATH="$RELATIVE_PATH"
+  fi
+  
+  # If it's a directory, add /** glob pattern for recursive search
+  if [[ -d "$SEARCH_PATH" ]]; then
+    SEARCH_PATH="$SEARCH_PATH/**"
+  fi
+fi
 
 # Check if sel.txt exists and read it if it does
 if [[ -f "$SEL_FILE" ]]; then
   INPUT="$(<"$SEL_FILE")"
   rm -f "$SEL_FILE"
   
-  if [ -n "$1" ]; then
-    scooter --search-text "$INPUT" --print-results -I "$1"
+  if [ -n "$SEARCH_PATH" ]; then
+    scooter --search-text "$INPUT" --print-results -I "$SEARCH_PATH"
   else
     scooter --search-text "$INPUT" --print-results --hidden 
   fi
 else
   # No selection text, run without --search-text
-  if [ -n "$1" ]; then
-    scooter --print-results -I "$1"
+  if [ -n "$SEARCH_PATH" ]; then
+    scooter --print-results -I "$SEARCH_PATH"
   else
     scooter --print-results --hidden 
   fi

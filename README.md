@@ -15,9 +15,10 @@ Helix's design philosophy embraces simplicity without plugins, following Unix pr
 | `space-g-u` | Normal | Copy Git URL to clipboard (cursor line) | `kittyx-git-url-copy` |
 | `space-g-o` | Normal | Open Git URL in browser (cursor line) | `kittyx-git-url-open` |
 | `space-e` | Normal | File browser (yazi) - manipulate selected file | `kittyx-tab tree` |
-| `space-/` | Normal | Live grep search - opens selected file | `kittyx-live-grep-tab` |
-| `space-/` | Select | Live grep with selected text as query - opens selected file | `kittyx-live-grep-tab` |
-| `C-S-f` | Tree | Live grep within selected folder - opens selected file | `kittyx-live-grep-tab` |
+| `space-/` | Normal | Live grep search - opens selected file | `kittyx-tab live-grep` |
+| `space-/` | Select | Live grep with selected text as query - opens selected file | `kittyx-tab live-grep` |
+| `C-S-f` | Tree | Live grep within selected folder - opens selected file | `kittyx-tab live-grep` |
+| `C-S-r` | Tree | Replace text within selected folder | `kittyx-tab replace` |
 | `space-r` | Normal | Replace in current file | `kittyx-replace` |
 | `space-R` | Normal | Replace across project | `kittyx-replace` |
 | `space-r` | Select | Replace selected text in current file | `kittyx-replace` |
@@ -102,7 +103,7 @@ Add the following key mappings to your Helix configuration file (`~/.config/heli
 ```toml
 [keys.normal.space]
 # Live grep search with automatic file opening
-"/" = [":open %sh{kittyx-live-grep-tab}"]
+"/" = [":open %sh{kittyx-tab live-grep}"]
 
 # Git operations
 g = { "b" = ":sh kittyx-git-blame %{buffer_name} %{cursor_line}", "f" = ":sh kittyx-tab git-file %{buffer_name}", "l" = ":sh kittyx-tab git-log", "u" = ":sh kittyx-git-url-copy %{buffer_name} %{cursor_line}", "o" = ":sh kittyx-git-url-open %{buffer_name} %{cursor_line}", "g" = ":sh kittyx-tab git" }
@@ -112,16 +113,16 @@ e = ":open %sh{kittyx-tab tree '%{buffer_name}'}"
 
 
 # Text replacement
-R = [ ":write-all", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
-r = [ ":write-all", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
+R = [ ":write-all", ":sh kittyx-tab replace", ":reload-all" ]
+r = [ ":write-all", ":sh kittyx-tab replace %{buffer_name}", ":reload-all" ]
 
 [keys.select.space]
 # Live grep with selected text as query  
-"/" = [":pipe tee /tmp/kittyx-live-grep-query", ":open %sh{kittyx-live-grep-tab}"]
+"/" = [":pipe tee /tmp/kittyx-live-grep-query", ":open %sh{kittyx-tab live-grep}"]
 
 # Text replacement with selection
-r = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace %{buffer_name} >/dev/tty", ":redraw", ":reload-all" ]
-R = [ ":pipe tee /tmp/kittyx-replace.tmp", ":insert-output kittyx-replace >/dev/tty", ":redraw", ":reload-all" ]
+r = [ ":pipe tee /tmp/kittyx-replace.tmp", ":sh kittyx-tab replace %{buffer_name}", ":reload-all" ]
+R = [ ":pipe tee /tmp/kittyx-replace.tmp", ":sh kittyx-tab replace", ":reload-all" ]
 ```
 
 ### Kitty Configuration
@@ -141,14 +142,20 @@ For enhanced yazi integration, add the following to your yazi keymap configurati
 ```toml
 [[manager.prepend_keymap]]
 on   = "<S-C-f>"
-run  = 'shell -- kittyx-live-grep-tab --filepath "$@"'
+run  = 'shell -- kittyx-tab live-grep --open-in-helix --quit-tree --filepath "$@"'
 desc = "Live grep on the given folder"
+
+[[manager.prepend_keymap]]
+on   = "<S-C-r>"
+run  = 'shell -- kittyx-tab replace --quit-tree --filepath "$@"'
+desc = "Replace text in the given folder"
 ```
 
 This enables:
 
 - **`Shift+Ctrl+F` in yazi**: Launch live grep search in the current directory
-- **Automatic integration**: Search results open directly in Helix
+- **`Shift+Ctrl+R` in yazi**: Launch text replacement in the current directory
+- **Automatic integration**: Search results open directly in Helix, replacements work within selected directory
 - **Smart cleanup**: Yazi automatically closes after file selection
 
 ## Requirements

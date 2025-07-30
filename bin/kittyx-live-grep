@@ -4,30 +4,24 @@ set -eo pipefail
 export SHELL="$(command -v bash)"
 
 # Clean up any previous results
-rm -f /tmp/live-grep-result /tmp/kittyx-live-grep-query /tmp/kittyx-tree-result
+rm -f /tmp/kittyx-live-grep-result /tmp/kittyx-live-grep-query /tmp/kittyx-tree-result
 
 # Colors
 CATPPUCCIN_GREEN='#a6da95'
 CATPPUCCIN_MAUVE='#c6a0f6'
 
 # Key bindings
-COPY_FILE_PATH='ctrl-y:execute(echo -n {1}:{2} | tee >(copyq add -) | copyq copy -)'
-KEYS="$COPY_FILE_PATH"
+KEYS="ctrl-y:execute(echo -n {1}:{2} | tee >(copyq add -) | copyq copy -)"
 
 # Parse arguments
 INITIAL_QUERY=""
 EXIT_ON_EXECUTION=false
 SEARCH_PATH=""
 OPEN_IN_HELIX=false
-QUIT_YAZI=false
+QUIT_TREE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --exit-on-execution)
-      EXIT_ON_EXECUTION=true
-      KEYS="$KEYS+abort"
-      shift
-      ;;
     --query)
       INITIAL_QUERY="$2"
       shift 2
@@ -36,17 +30,12 @@ while [[ $# -gt 0 ]]; do
       SEARCH_PATH="$2"
       shift 2
       ;;
-    --search-dir)
-      # Backward compatibility
-      SEARCH_PATH="$2"
-      shift 2
-      ;;
     --open-in-helix)
       OPEN_IN_HELIX=true
       shift
       ;;
-    --quit-yazi)
-      QUIT_YAZI=true
+    --quit-tree)
+      QUIT_TREE=true
       shift
       ;;
     *)
@@ -56,7 +45,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 IFS=$'\n' readarray -t selected_matches < <(
-  rg --color=always --line-number --no-heading --smart-case "${*:-}" ${SEARCH_PATH:+$SEARCH_PATH} | rg -v '^[^:]*:[^:]*:\s*$' |
+  rg --color=always --line-number --no-heading --with-filename --smart-case "${*:-}" ${SEARCH_PATH:+$SEARCH_PATH} | rg -v '^[^:]*:[^:]*:\s*$' |
     fzf --ansi \
       --cycle \
       --border \
@@ -65,7 +54,7 @@ IFS=$'\n' readarray -t selected_matches < <(
       --height '100%' \
       --exact \
       --print-query \
-      --preview 'bash -c "L={2}; batcat {1} --theme=\"Solarized (light)\" --color=always --plain --highlight-line \$L --line-range \$((L>10 ? L-10 : 1)):"' \
+      --preview 'bash -c "L={2}; FILE={1}; [[ -f \"\$FILE\" ]] && batcat \"\$FILE\" --theme=\"Solarized (light)\" --color=always --plain --highlight-line \$L --line-range \$((L>10 ? L-10 : 1)): || echo \"File not found: \$FILE\""' \
       --preview-window 'up,60%' \
       --scrollbar '▍' \
       --bind "$KEYS" \
@@ -90,21 +79,21 @@ fi
 # If --open-in-helix flag is set, write selected file to result file and handle yazi
 if [[ "$OPEN_IN_HELIX" == true && -n "$file_path" ]]; then
   # Choose result file path based on whether we're called from yazi
-  if [[ "$QUIT_YAZI" == true ]]; then
+  if [[ "$QUIT_TREE" == true ]]; then
     # When called from yazi, use tree result path for consistency
     echo "$file_path" > /tmp/kittyx-tree-result
   else
     # When called standalone, use live-grep result path
-    echo "$file_path" > /tmp/live-grep-result
+    echo "$file_path" > /tmp/kittyx-live-grep-result
   fi
   
-  # If --quit-yazi flag is set, quit yazi
-  if [[ "$QUIT_YAZI" == true ]]; then
+  # If --quit-tree flag is set, quit tree
+  if [[ "$QUIT_TREE" == true ]]; then
     # Get the current focused OS window ID
     CURRENT_WIN_ID=$(kitty @ ls | jq -r '.[] | select(.is_focused == true) | .id')
     
-    # Find the yazi tab and send quit command (look for tabs starting with "tree")
-    YAZI_WINDOW_ID=$(kitty @ ls | jq -r --arg win "$CURRENT_WIN_ID" '
+    # Find the tree tab and send quit command (look for tabs starting with "tree")
+    TREE_WINDOW_ID=$(kitty @ ls | jq -r --arg win "$CURRENT_WIN_ID" '
       .[] 
       | select(.id == ($win | tonumber))
       | .tabs[]
@@ -112,8 +101,8 @@ if [[ "$OPEN_IN_HELIX" == true && -n "$file_path" ]]; then
       | .windows[0]
       | .id')
     
-    if [[ -n "$YAZI_WINDOW_ID" ]]; then
-      kitty @ send-text --match id:"$YAZI_WINDOW_ID" 'q'
+    if [[ -n "$TREE_WINDOW_ID" ]]; then
+      kitty @ send-text --match id:"$TREE_WINDOW_ID" 'q'
     fi
   fi
 fi
