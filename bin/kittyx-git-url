@@ -42,10 +42,10 @@ fi
 
 # Convert SSH to HTTPS format and determine platform
 PLATFORM=""
-if [[ "$REMOTE_URL" =~ ^ssh://([^:]+):29418/(.+)$ ]]; then
-  # Gerrit SSH format: ssh://host:29418/project
-  HOST="${BASH_REMATCH[1]}"
-  PROJECT="${BASH_REMATCH[2]}"
+if [[ "$REMOTE_URL" =~ ^ssh://([^@]+@)?([^:]+):29418/(.+)$ ]]; then
+  # Gerrit SSH format: ssh://[user@]host:29418/project
+  HOST="${BASH_REMATCH[2]}"
+  PROJECT="${BASH_REMATCH[3]}"
   BASE_URL="https://$HOST/plugins/gitiles/$PROJECT"
   PLATFORM="gerrit"
 elif [[ "$REMOTE_URL" =~ ^git@([^:]+):(.+)\.git$ ]]; then
@@ -63,8 +63,8 @@ fi
 
 # Build the URL based on platform
 if [[ "$PLATFORM" == "gerrit" ]]; then
-  # Gerrit Gitiles format: https://host/plugins/gitiles/project/+/refs/heads/branch/path#line
-  URL="$BASE_URL/+/refs/heads/$BRANCH/$RELATIVE_PATH"
+  # Gerrit Gitiles format: https://host/plugins/gitiles/project/+show/refs/heads/branch/path#line
+  URL="$BASE_URL/+show/refs/heads/$BRANCH/$RELATIVE_PATH"
   if [[ -n "$START_LINE" ]]; then
     if [[ -n "$END_LINE" && "$END_LINE" != "$START_LINE" ]]; then
       URL="$URL#$START_LINE,$END_LINE"
